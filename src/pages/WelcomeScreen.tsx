@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { MessageCircle, Users, Shield, Zap, ArrowRight } from 'lucide-react'
+import { MessageCircle, Users, Shield, ArrowRight } from 'lucide-react'
 
 export function WelcomeScreen() {
   return (
