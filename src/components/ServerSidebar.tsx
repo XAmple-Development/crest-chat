@@ -33,24 +33,28 @@ export function ServerSidebar({ servers, selectedServerId, onServerSelect, onCha
     if (!newServerName.trim()) return;
     
     setIsCreating(true);
-    const server = await createServer(newServerName.trim());
-    
-    if (server) {
-      onServerSelect(server.id);
-      setNewServerName("");
-      setIsDialogOpen(false);
-      toast({
-        title: "Server created!",
-        description: `Welcome to ${server.name}`
-      });
-    } else {
+    try {
+      const server = await createServer(newServerName.trim());
+      
+      if (server) {
+        onServerSelect(server.id);
+        setNewServerName("");
+        setIsDialogOpen(false);
+        toast({
+          title: "Server created!",
+          description: `Welcome to ${server.name}`
+        });
+      }
+    } catch (error) {
+      console.error('Server creation error:', error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to create server"
+        title: "Failed to create server",
+        description: error instanceof Error ? error.message : "Please try again"
       });
+    } finally {
+      setIsCreating(false);
     }
-    setIsCreating(false);
   };
 
   const handleChannelClick = (channelId: string) => {

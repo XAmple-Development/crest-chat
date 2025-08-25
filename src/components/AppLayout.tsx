@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, LogOut, Menu, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DebugPanel } from "@/components/DebugPanel";
 
 export function AppLayout() {
   const [showDemo, setShowDemo] = useState(false);
@@ -132,6 +133,9 @@ export function AppLayout() {
           <OnlineUsers selectedServerId={selectedServerId} />
         )}
       </main>
+
+      {/* Debug Panel - Remove this after fixing the issue */}
+      <DebugPanel />
     </div>
   );
 }

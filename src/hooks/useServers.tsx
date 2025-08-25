@@ -82,53 +82,88 @@ export function useServers() {
   const createServer = async (name: string, description?: string) => {
     if (!user) return null;
 
-    const { data: server, error: serverError } = await supabase
-      .from('servers')
-      .insert({
-        name,
-        description,
-        owner_id: user.id
-      })
-      .select()
-      .single();
+    try {
+      // First, ensure the user has a profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-    if (serverError) {
-      console.error('Error creating server:', serverError);
-      return null;
-    }
+      if (profileError || !profile) {
+        // Create profile if it doesn't exist
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            username: user.email?.split('@')[0] || `user_${user.id.substring(0, 8)}`,
+            display_name: user.email?.split('@')[0] || `User ${user.id.substring(0, 8)}`
+          });
 
-    // Add owner as member
-    const { error: memberError } = await supabase
-      .from('server_members')
-      .insert({
-        server_id: server.id,
-        user_id: user.id,
-        role: 'owner'
-      });
-
-    if (memberError) {
-      console.error('Error adding owner as member:', memberError);
-    }
-
-    // Create default channels
-    await supabase
-      .from('channels')
-      .insert([
-        {
-          server_id: server.id,
-          name: 'general',
-          type: 'text',
-          position: 0
-        },
-        {
-          server_id: server.id,
-          name: 'General Voice',
-          type: 'voice',
-          position: 1
+        if (createProfileError) {
+          console.error('Error creating profile:', createProfileError);
+          throw new Error('Failed to create user profile');
         }
-      ]);
+      }
 
-    return server;
+      // Create the server
+      const { data: server, error: serverError } = await supabase
+        .from('servers')
+        .insert({
+          name,
+          description,
+          owner_id: user.id
+        })
+        .select()
+        .single();
+
+      if (serverError) {
+        console.error('Error creating server:', serverError);
+        throw new Error('Failed to create server');
+      }
+
+      // Add owner as member
+      const { error: memberError } = await supabase
+        .from('server_members')
+        .insert({
+          server_id: server.id,
+          user_id: user.id,
+          role: 'owner'
+        });
+
+      if (memberError) {
+        console.error('Error adding owner as member:', memberError);
+        // Don't throw here, as the server was created successfully
+      }
+
+      // Create default channels
+      const { error: channelError } = await supabase
+        .from('channels')
+        .insert([
+          {
+            server_id: server.id,
+            name: 'general',
+            type: 'text',
+            position: 0
+          },
+          {
+            server_id: server.id,
+            name: 'General Voice',
+            type: 'voice',
+            position: 1
+          }
+        ]);
+
+      if (channelError) {
+        console.error('Error creating default channels:', channelError);
+        // Don't throw here, as the server was created successfully
+      }
+
+      return server;
+    } catch (error) {
+      console.error('Error in createServer:', error);
+      throw error;
+    }
   };
 
   return {
