@@ -95,9 +95,6 @@ export function WelcomeScreen() {
           <Button variant="ghost" className="hidden md:flex">
             Support
           </Button>
-          <Button className="gradient-blurple text-white">
-            Sign In
-          </Button>
         </div>
       </nav>
 
@@ -318,7 +315,7 @@ export function WelcomeScreen() {
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2024 LovableChat. All rights reserved.</p>
+            <p>&copy; 2024 LovableChat. All rights reserved. X-Ample Development</p>
           </div>
         </div>
       </footer>
