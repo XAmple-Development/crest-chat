@@ -1,4 +1,4 @@
-import { Hash, Volume2, Settings, Plus } from "lucide-react";
+import { Hash, Volume2, Settings, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useChannels, Server } from "@/hooks/useServers";
 import { useServers } from "@/hooks/useServers";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { JoinServerModal } from "@/components/JoinServerModal";
+import { ServerInviteModal } from "@/components/ServerInviteModal";
 
 interface ServerSidebarProps {
   servers: Server[];
@@ -110,6 +112,9 @@ export function ServerSidebar({ servers, selectedServerId, onServerSelect, onCha
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Join Server Button */}
+        <JoinServerModal onServerJoined={(serverId) => onServerSelect(serverId)} />
       </div>
 
       {/* Channels Column */}
@@ -119,9 +124,23 @@ export function ServerSidebar({ servers, selectedServerId, onServerSelect, onCha
           <h2 className="font-semibold text-foreground">
             {currentServer ? currentServer.name : 'Select a server'}
           </h2>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-            <Settings className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center space-x-1">
+            {currentServer && (
+              <ServerInviteModal
+                serverId={currentServer.id}
+                serverName={currentServer.name}
+                currentInviteCode={currentServer.invite_code}
+                trigger={
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    <Users className="w-4 h-4" />
+                  </Button>
+                }
+              />
+            )}
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+              <Settings className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Channels List */}
