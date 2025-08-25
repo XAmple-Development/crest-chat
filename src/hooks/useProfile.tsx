@@ -46,11 +46,36 @@ export function useProfile() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
+
+      if (error && error.code === 'PGRST116') {
+        // Profile doesn't exist, create one
+        const username = user.email?.split('@')[0] || 'user';
+        const discriminator = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            username: username,
+            discriminator: discriminator,
+            display_name: username,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          setError(createError.message);
+        } else {
+          data = newProfile;
+          error = null;
+        }
+      }
 
       if (error) {
         console.error('Error fetching profile:', error);

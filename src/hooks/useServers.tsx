@@ -186,19 +186,39 @@ export function useServers() {
 
     try {
       // First, ensure user has a profile
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
       if (!profile) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "User profile not found. Please try again."
-        });
-        return null;
+        // Try to create profile if it doesn't exist
+        const username = user.email?.split('@')[0] || 'user';
+        const discriminator = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        
+        const { data: newProfile, error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            username: username,
+            discriminator: discriminator,
+            display_name: username,
+          })
+          .select()
+          .single();
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to create user profile. Please try again."
+          });
+          return null;
+        }
+
+        profile = newProfile;
       }
 
       // Generate invite code
