@@ -2,41 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Discord-inspired Design System. All colors MUST be HSL. */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Discord Dark Theme Colors */
+    --background: 220 13% 18%;
+    --foreground: 210 11% 96%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 223 7% 20%;
+    --card-foreground: 210 11% 96%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 223 7% 20%;
+    --popover-foreground: 210 11% 96%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Discord Blurple */
+    --primary: 235 86% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 13% 23%;
+    --secondary-foreground: 210 11% 96%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 13% 14%;
+    --muted-foreground: 217 10% 64%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 235 86% 65%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 359 82% 59%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 217 9% 26%;
+    --input: 217 9% 26%;
+    --ring: 235 86% 65%;
 
     --radius: 0.5rem;
+
+    /* Discord-specific colors */
+    --discord-gray-100: 220 13% 18%;
+    --discord-gray-200: 223 7% 20%;
+    --discord-gray-300: 220 13% 23%;
+    --discord-gray-400: 217 9% 26%;
+    --discord-blurple: 235 86% 65%;
+    --discord-green: 139 47% 56%;
+    --discord-red: 359 82% 59%;
+    --discord-yellow: 38 95% 54%;
+    
+    /* Gradients */
+    --gradient-blurple: linear-gradient(135deg, hsl(235 86% 65%) 0%, hsl(245 58% 51%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(139 47% 56%) 0%, hsl(134 61% 41%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(223 7% 20%) 0%, hsl(220 13% 18%) 100%);
+    
+    /* Shadows */
+    --shadow-discord: 0 8px 16px hsl(0 0% 0% / 0.24);
+    --shadow-card: 0 2px 10px hsl(0 0% 0% / 0.12);
+    --shadow-glow: 0 0 20px hsl(235 86% 65% / 0.3);
+
+    /* Animations */
+    --transition-smooth: all 0.2s ease-in-out;
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +123,101 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@layer components {
+  /* Discord-style server icon */
+  .server-icon {
+    @apply w-12 h-12 rounded-2xl bg-card flex items-center justify-center text-foreground font-semibold transition-all duration-200 hover:rounded-xl hover:bg-primary hover:text-primary-foreground cursor-pointer;
+  }
+
+  .server-icon.active {
+    @apply rounded-xl bg-primary text-primary-foreground;
+  }
+
+  /* Discord-style channel item */
+  .channel-item {
+    @apply flex items-center px-2 py-1 mx-1 rounded text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition-all duration-150;
+  }
+
+  .channel-item.active {
+    @apply bg-secondary text-foreground;
+  }
+
+  /* Discord-style message */
+  .message-item {
+    @apply px-4 py-2 hover:bg-secondary/50 transition-colors duration-150;
+  }
+
+  /* Status indicators */
+  .status-online {
+    @apply bg-[hsl(var(--discord-green))] border-2 border-card;
+  }
+
+  .status-idle {
+    @apply bg-[hsl(var(--discord-yellow))] border-2 border-card;
+  }
+
+  .status-dnd {
+    @apply bg-[hsl(var(--discord-red))] border-2 border-card;
+  }
+
+  .status-offline {
+    @apply bg-muted-foreground border-2 border-card;
+  }
+
+  /* Custom scrollbar */
+  .discord-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+
+  .discord-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .discord-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .discord-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  .discord-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground));
+  }
+}
+
+@layer utilities {
+  .gradient-blurple {
+    background: var(--gradient-blurple);
+  }
+
+  .gradient-success {
+    background: var(--gradient-success);
+  }
+
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .shadow-discord {
+    box-shadow: var(--shadow-discord);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .transition-smooth {
+    transition: var(--transition-smooth);
   }
 }
