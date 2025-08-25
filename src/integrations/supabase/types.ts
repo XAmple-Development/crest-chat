@@ -7,473 +7,759 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
-  }
   public: {
     Tables: {
-      channels: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          is_private: boolean | null
-          name: string
-          position: number | null
-          server_id: string
-          type: Database["public"]["Enums"]["channel_type"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_private?: boolean | null
-          name: string
-          position?: number | null
-          server_id: string
-          type?: Database["public"]["Enums"]["channel_type"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_private?: boolean | null
-          name?: string
-          position?: number | null
-          server_id?: string
-          type?: Database["public"]["Enums"]["channel_type"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "channels_server_id_fkey"
-            columns: ["server_id"]
-            isOneToOne: false
-            referencedRelation: "servers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      direct_messages: {
-        Row: {
-          content: string
-          created_at: string
-          edited_at: string | null
-          id: string
-          recipient_id: string
-          sender_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          edited_at?: string | null
-          id?: string
-          recipient_id: string
-          sender_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          edited_at?: string | null
-          id?: string
-          recipient_id?: string
-          sender_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "direct_messages_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "direct_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      friendships: {
-        Row: {
-          addressee_id: string
-          created_at: string
-          id: string
-          requester_id: string
-          status: Database["public"]["Enums"]["friendship_status"]
-          updated_at: string
-        }
-        Insert: {
-          addressee_id: string
-          created_at?: string
-          id?: string
-          requester_id: string
-          status?: Database["public"]["Enums"]["friendship_status"]
-          updated_at?: string
-        }
-        Update: {
-          addressee_id?: string
-          created_at?: string
-          id?: string
-          requester_id?: string
-          status?: Database["public"]["Enums"]["friendship_status"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "friendships_addressee_id_fkey"
-            columns: ["addressee_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "friendships_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      messages: {
-        Row: {
-          attachments: Json | null
-          channel_id: string
-          content: string
-          created_at: string
-          edited_at: string | null
-          id: string
-          reply_to: string | null
-          user_id: string
-        }
-        Insert: {
-          attachments?: Json | null
-          channel_id: string
-          content: string
-          created_at?: string
-          edited_at?: string | null
-          id?: string
-          reply_to?: string | null
-          user_id: string
-        }
-        Update: {
-          attachments?: Json | null
-          channel_id?: string
-          content?: string
-          created_at?: string
-          edited_at?: string | null
-          id?: string
-          reply_to?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_channel_id_fkey"
-            columns: ["channel_id"]
-            isOneToOne: false
-            referencedRelation: "channels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_reply_to_fkey"
-            columns: ["reply_to"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
-          avatar_url: string | null
-          bio: string | null
-          created_at: string
-          display_name: string | null
           id: string
-          status: string | null
-          updated_at: string
-          user_id: string
           username: string
+          display_name: string | null
+          discriminator: string
+          avatar_url: string | null
+          banner_url: string | null
+          bio: string | null
+          status: 'online' | 'idle' | 'dnd' | 'offline'
+          custom_status: string | null
+          theme: string
+          locale: string
+          timezone: string
+          is_verified: boolean
+          is_bot: boolean
+          is_system: boolean
+          flags: number
+          premium_type: number
+          premium_since: string | null
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          status?: string | null
-          updated_at?: string
-          user_id: string
+          id: string
           username: string
+          display_name?: string | null
+          discriminator: string
+          avatar_url?: string | null
+          banner_url?: string | null
+          bio?: string | null
+          status?: 'online' | 'idle' | 'dnd' | 'offline'
+          custom_status?: string | null
+          theme?: string
+          locale?: string
+          timezone?: string
+          is_verified?: boolean
+          is_bot?: boolean
+          is_system?: boolean
+          flags?: number
+          premium_type?: number
+          premium_since?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string
-          display_name?: string | null
           id?: string
-          status?: string | null
-          updated_at?: string
-          user_id?: string
           username?: string
+          display_name?: string | null
+          discriminator?: string
+          avatar_url?: string | null
+          banner_url?: string | null
+          bio?: string | null
+          status?: 'online' | 'idle' | 'dnd' | 'offline'
+          custom_status?: string | null
+          theme?: string
+          locale?: string
+          timezone?: string
+          is_verified?: boolean
+          is_bot?: boolean
+          is_system?: boolean
+          flags?: number
+          premium_type?: number
+          premium_since?: string | null
+          created_at?: string
+          updated_at?: string
         }
-        Relationships: []
+      }
+      servers: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          icon_url: string | null
+          banner_url: string | null
+          owner_id: string
+          is_public: boolean
+          is_verified: boolean
+          member_count: number
+          max_members: number
+          boost_level: number
+          boost_count: number
+          invite_code: string | null
+          default_channel_id: string | null
+          system_channel_id: string | null
+          rules_channel_id: string | null
+          public_updates_channel_id: string | null
+          afk_channel_id: string | null
+          afk_timeout: number
+          verification_level: number
+          explicit_content_filter: number
+          premium_tier: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          icon_url?: string | null
+          banner_url?: string | null
+          owner_id: string
+          is_public?: boolean
+          is_verified?: boolean
+          member_count?: number
+          max_members?: number
+          boost_level?: number
+          boost_count?: number
+          invite_code?: string | null
+          default_channel_id?: string | null
+          system_channel_id?: string | null
+          rules_channel_id?: string | null
+          public_updates_channel_id?: string | null
+          afk_channel_id?: string | null
+          afk_timeout?: number
+          verification_level?: number
+          explicit_content_filter?: number
+          premium_tier?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          icon_url?: string | null
+          banner_url?: string | null
+          owner_id?: string
+          is_public?: boolean
+          is_verified?: boolean
+          member_count?: number
+          max_members?: number
+          boost_level?: number
+          boost_count?: number
+          invite_code?: string | null
+          default_channel_id?: string | null
+          system_channel_id?: string | null
+          rules_channel_id?: string | null
+          public_updates_channel_id?: string | null
+          afk_channel_id?: string | null
+          afk_timeout?: number
+          verification_level?: number
+          explicit_content_filter?: number
+          premium_tier?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      server_roles: {
+        Row: {
+          id: string
+          server_id: string
+          name: string
+          color: number
+          hoist: boolean
+          position: number
+          permissions: number
+          mentionable: boolean
+          managed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          server_id: string
+          name: string
+          color?: number
+          hoist?: boolean
+          position?: number
+          permissions?: number
+          mentionable?: boolean
+          managed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          server_id?: string
+          name?: string
+          color?: number
+          hoist?: boolean
+          position?: number
+          permissions?: number
+          mentionable?: boolean
+          managed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      channels: {
+        Row: {
+          id: string
+          server_id: string | null
+          name: string
+          description: string | null
+          type: 'text' | 'voice' | 'announcement' | 'stage' | 'forum'
+          position: number
+          is_private: boolean
+          is_nsfw: boolean
+          is_announcement: boolean
+          is_pinned: boolean
+          parent_id: string | null
+          topic: string | null
+          rate_limit_per_user: number
+          bitrate: number
+          user_limit: number
+          rtc_region: string | null
+          video_quality_mode: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          server_id?: string | null
+          name: string
+          description?: string | null
+          type?: 'text' | 'voice' | 'announcement' | 'stage' | 'forum'
+          position?: number
+          is_private?: boolean
+          is_nsfw?: boolean
+          is_announcement?: boolean
+          is_pinned?: boolean
+          parent_id?: string | null
+          topic?: string | null
+          rate_limit_per_user?: number
+          bitrate?: number
+          user_limit?: number
+          rtc_region?: string | null
+          video_quality_mode?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          server_id?: string | null
+          name?: string
+          description?: string | null
+          type?: 'text' | 'voice' | 'announcement' | 'stage' | 'forum'
+          position?: number
+          is_private?: boolean
+          is_nsfw?: boolean
+          is_announcement?: boolean
+          is_pinned?: boolean
+          parent_id?: string | null
+          topic?: string | null
+          rate_limit_per_user?: number
+          bitrate?: number
+          user_limit?: number
+          rtc_region?: string | null
+          video_quality_mode?: number
+          created_at?: string
+          updated_at?: string
+        }
       }
       server_members: {
         Row: {
           id: string
-          joined_at: string
-          nickname: string | null
-          role: Database["public"]["Enums"]["server_role"]
           server_id: string
           user_id: string
+          nickname: string | null
+          avatar_url: string | null
+          joined_at: string
+          premium_since: string | null
+          is_deafened: boolean
+          is_muted: boolean
+          is_streaming: boolean
+          is_video: boolean
         }
         Insert: {
           id?: string
-          joined_at?: string
-          nickname?: string | null
-          role?: Database["public"]["Enums"]["server_role"]
           server_id: string
           user_id: string
+          nickname?: string | null
+          avatar_url?: string | null
+          joined_at?: string
+          premium_since?: string | null
+          is_deafened?: boolean
+          is_muted?: boolean
+          is_streaming?: boolean
+          is_video?: boolean
         }
         Update: {
           id?: string
-          joined_at?: string
-          nickname?: string | null
-          role?: Database["public"]["Enums"]["server_role"]
           server_id?: string
           user_id?: string
+          nickname?: string | null
+          avatar_url?: string | null
+          joined_at?: string
+          premium_since?: string | null
+          is_deafened?: boolean
+          is_muted?: boolean
+          is_streaming?: boolean
+          is_video?: boolean
         }
-        Relationships: [
-          {
-            foreignKeyName: "server_members_server_id_fkey"
-            columns: ["server_id"]
-            isOneToOne: false
-            referencedRelation: "servers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "server_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
       }
-      servers: {
+      member_roles: {
         Row: {
-          created_at: string
-          description: string | null
-          icon_url: string | null
+          member_id: string
+          role_id: string
+        }
+        Insert: {
+          member_id: string
+          role_id: string
+        }
+        Update: {
+          member_id?: string
+          role_id?: string
+        }
+      }
+      messages: {
+        Row: {
           id: string
-          invite_code: string | null
-          is_public: boolean | null
-          member_count: number | null
-          name: string
-          owner_id: string
+          channel_id: string
+          author_id: string
+          content: string | null
+          type: 'text' | 'image' | 'video' | 'file' | 'embed' | 'system'
+          is_pinned: boolean
+          is_edited: boolean
+          edited_at: string | null
+          is_deleted: boolean
+          deleted_at: string | null
+          mentions_everyone: boolean
+          mention_roles: string[] | null
+          mention_users: string[] | null
+          embeds: Json[] | null
+          attachments: Json[] | null
+          reactions: Json | null
+          flags: number
+          webhook_id: string | null
+          application_id: string | null
+          message_reference: Json | null
+          activity: Json | null
+          application: Json | null
+          created_at: string
           updated_at: string
         }
         Insert: {
-          created_at?: string
-          description?: string | null
-          icon_url?: string | null
           id?: string
-          invite_code?: string | null
-          is_public?: boolean | null
-          member_count?: number | null
-          name: string
-          owner_id: string
+          channel_id: string
+          author_id: string
+          content?: string | null
+          type?: 'text' | 'image' | 'video' | 'file' | 'embed' | 'system'
+          is_pinned?: boolean
+          is_edited?: boolean
+          edited_at?: string | null
+          is_deleted?: boolean
+          deleted_at?: string | null
+          mentions_everyone?: boolean
+          mention_roles?: string[] | null
+          mention_users?: string[] | null
+          embeds?: Json[] | null
+          attachments?: Json[] | null
+          reactions?: Json | null
+          flags?: number
+          webhook_id?: string | null
+          application_id?: string | null
+          message_reference?: Json | null
+          activity?: Json | null
+          application?: Json | null
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          created_at?: string
-          description?: string | null
-          icon_url?: string | null
           id?: string
-          invite_code?: string | null
-          is_public?: boolean | null
-          member_count?: number | null
-          name?: string
-          owner_id?: string
+          channel_id?: string
+          author_id?: string
+          content?: string | null
+          type?: 'text' | 'image' | 'video' | 'file' | 'embed' | 'system'
+          is_pinned?: boolean
+          is_edited?: boolean
+          edited_at?: string | null
+          is_deleted?: boolean
+          deleted_at?: string | null
+          mentions_everyone?: boolean
+          mention_roles?: string[] | null
+          mention_users?: string[] | null
+          embeds?: Json[] | null
+          attachments?: Json[] | null
+          reactions?: Json | null
+          flags?: number
+          webhook_id?: string | null
+          application_id?: string | null
+          message_reference?: Json | null
+          activity?: Json | null
+          application?: Json | null
+          created_at?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "servers_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
+      }
+      direct_messages: {
+        Row: {
+          id: string
+          user1_id: string
+          user2_id: string
+          last_message_id: string | null
+          last_message_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user1_id: string
+          user2_id: string
+          last_message_id?: string | null
+          last_message_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user1_id?: string
+          user2_id?: string
+          last_message_id?: string | null
+          last_message_at?: string
+          created_at?: string
+        }
+      }
+      dm_channels: {
+        Row: {
+          id: string
+          dm_id: string
+          name: string | null
+          icon_url: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          dm_id: string
+          name?: string | null
+          icon_url?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          dm_id?: string
+          name?: string | null
+          icon_url?: string | null
+          created_at?: string
+        }
+      }
+      friendships: {
+        Row: {
+          id: string
+          user_id: string
+          friend_id: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          friend_id: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          friend_id?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      voice_states: {
+        Row: {
+          id: string
+          user_id: string
+          channel_id: string | null
+          server_id: string | null
+          session_id: string
+          is_deafened: boolean
+          is_muted: boolean
+          is_self_deafened: boolean
+          is_self_muted: boolean
+          is_streaming: boolean
+          is_video: boolean
+          is_speaking: boolean
+          request_to_speak_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          channel_id?: string | null
+          server_id?: string | null
+          session_id: string
+          is_deafened?: boolean
+          is_muted?: boolean
+          is_self_deafened?: boolean
+          is_self_muted?: boolean
+          is_streaming?: boolean
+          is_video?: boolean
+          is_speaking?: boolean
+          request_to_speak_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          channel_id?: string | null
+          server_id?: string | null
+          session_id?: string
+          is_deafened?: boolean
+          is_muted?: boolean
+          is_self_deafened?: boolean
+          is_self_muted?: boolean
+          is_streaming?: boolean
+          is_video?: boolean
+          is_speaking?: boolean
+          request_to_speak_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      invites: {
+        Row: {
+          id: string
+          code: string
+          server_id: string
+          channel_id: string
+          inviter_id: string
+          max_uses: number
+          uses: number
+          max_age: number
+          is_temporary: boolean
+          expires_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          server_id: string
+          channel_id: string
+          inviter_id: string
+          max_uses?: number
+          uses?: number
+          max_age?: number
+          is_temporary?: boolean
+          expires_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          server_id?: string
+          channel_id?: string
+          inviter_id?: string
+          max_uses?: number
+          uses?: number
+          max_age?: number
+          is_temporary?: boolean
+          expires_at?: string | null
+          created_at?: string
+        }
+      }
+      audit_logs: {
+        Row: {
+          id: string
+          server_id: string
+          user_id: string
+          target_id: string | null
+          target_type: string | null
+          action_type: string
+          changes: Json | null
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          server_id: string
+          user_id: string
+          target_id?: string | null
+          target_type?: string | null
+          action_type: string
+          changes?: Json | null
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          server_id?: string
+          user_id?: string
+          target_id?: string | null
+          target_type?: string | null
+          action_type?: string
+          changes?: Json | null
+          reason?: string | null
+          created_at?: string
+        }
+      }
+      emojis: {
+        Row: {
+          id: string
+          server_id: string | null
+          name: string
+          image_url: string
+          is_animated: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          server_id?: string | null
+          name: string
+          image_url: string
+          is_animated?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          server_id?: string | null
+          name?: string
+          image_url?: string
+          is_animated?: boolean
+          created_at?: string
+        }
+      }
+      stickers: {
+        Row: {
+          id: string
+          server_id: string | null
+          name: string
+          description: string | null
+          image_url: string
+          format_type: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          server_id?: string | null
+          name: string
+          description?: string | null
+          image_url: string
+          format_type?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          server_id?: string | null
+          name?: string
+          description?: string | null
+          image_url?: string
+          format_type?: number
+          created_at?: string
+        }
+      }
+      webhooks: {
+        Row: {
+          id: string
+          server_id: string | null
+          channel_id: string
+          name: string
+          avatar_url: string | null
+          token: string
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          server_id?: string | null
+          channel_id: string
+          name: string
+          avatar_url?: string | null
+          token: string
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          server_id?: string | null
+          channel_id?: string
+          name?: string
+          avatar_url?: string | null
+          token?: string
+          created_by?: string
+          created_at?: string
+        }
+      }
+      user_settings: {
+        Row: {
+          user_id: string
+          theme: string
+          locale: string
+          timezone: string
+          status: 'online' | 'idle' | 'dnd' | 'offline'
+          custom_status: string | null
+          message_notifications: number
+          mention_notifications: boolean
+          sound_notifications: boolean
+          show_current_game: boolean
+          show_activity_status: boolean
+          allow_friend_requests: boolean
+          allow_direct_messages: boolean
+          show_online_status: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          theme?: string
+          locale?: string
+          timezone?: string
+          status?: 'online' | 'idle' | 'dnd' | 'offline'
+          custom_status?: string | null
+          message_notifications?: number
+          mention_notifications?: boolean
+          sound_notifications?: boolean
+          show_current_game?: boolean
+          show_activity_status?: boolean
+          allow_friend_requests?: boolean
+          allow_direct_messages?: boolean
+          show_online_status?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          theme?: string
+          locale?: string
+          timezone?: string
+          status?: 'online' | 'idle' | 'dnd' | 'offline'
+          custom_status?: string | null
+          message_notifications?: number
+          mention_notifications?: boolean
+          sound_notifications?: boolean
+          show_current_game?: boolean
+          show_activity_status?: boolean
+          allow_friend_requests?: boolean
+          allow_direct_messages?: boolean
+          show_online_status?: boolean
+          created_at?: string
+          updated_at?: string
+        }
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      are_friends: {
-        Args: { user1_uuid: string; user2_uuid: string }
-        Returns: boolean
-      }
-      get_user_server_role: {
-        Args: { server_uuid: string; user_uuid: string }
-        Returns: Database["public"]["Enums"]["server_role"]
-      }
-      is_server_member: {
-        Args: { server_uuid: string; user_uuid: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      channel_type: "text" | "voice"
-      friendship_status: "pending" | "accepted" | "blocked"
-      server_role: "owner" | "admin" | "moderator" | "member"
+      user_status: 'online' | 'idle' | 'dnd' | 'offline'
+      channel_type: 'text' | 'voice' | 'announcement' | 'stage' | 'forum'
+      message_type: 'text' | 'image' | 'video' | 'file' | 'embed' | 'system'
+      role_permission: 'manage_channels' | 'manage_roles' | 'manage_messages' | 'manage_server' | 'kick_members' | 'ban_members' | 'administrator' | 'mention_everyone' | 'use_external_emojis' | 'use_external_stickers' | 'add_reactions' | 'priority_speaker' | 'stream' | 'view_channel' | 'send_messages' | 'send_tts_messages' | 'manage_messages' | 'embed_links' | 'attach_files' | 'read_message_history' | 'use_slash_commands' | 'connect' | 'speak' | 'use_vad' | 'change_nickname' | 'manage_nicknames' | 'view_audit_log'
     }
     CompositeTypes: {
       [_ in never]: never
     }
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      channel_type: ["text", "voice"],
-      friendship_status: ["pending", "accepted", "blocked"],
-      server_role: ["owner", "admin", "moderator", "member"],
-    },
-  },
-} as const
