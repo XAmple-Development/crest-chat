@@ -12,6 +12,7 @@ import { JoinServerModal } from "@/components/JoinServerModal";
 import { ServerInviteModal } from "@/components/ServerInviteModal";
 import { ServerSettingsModal } from "@/components/ServerSettingsModal";
 import { ProfileSettingsModal } from "@/components/ProfileSettingsModal";
+import { UserArea } from "@/components/UserArea";
 
 interface ServerSidebarProps {
   servers: Server[];
@@ -232,28 +233,7 @@ export function ServerSidebar({ servers, selectedServerId, onServerSelect, onCha
         </div>
 
         {/* User Area */}
-        <div className="h-14 bg-discord-gray-300 px-2 flex items-center space-x-2">
-          <div className="relative">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium">
-              {user?.email?.substring(0, 2).toUpperCase() || 'U'}
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 status-online rounded-full"></div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-foreground truncate">
-              {user?.email?.split('@')[0] || 'User'}
-            </div>
-            <div className="text-xs text-muted-foreground">#0001</div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            onClick={() => setShowProfileSettings(true)}
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
-        </div>
+        <UserArea onOpenProfileSettings={() => setShowProfileSettings(true)} />
       </div>
 
       {/* Server Settings Modal */}
