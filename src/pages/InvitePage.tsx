@@ -1,174 +1,123 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useServerInvites } from '@/hooks/useServerInvites';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, MessageSquare, Users } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { MessageCircle, Users, ArrowRight } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
-export default function InvitePage() {
-  const { inviteCode } = useParams<{ inviteCode: string }>();
-  const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const { joinServerByInvite, loading: joinLoading } = useServerInvites();
-  const [serverInfo, setServerInfo] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function InvitePage() {
+  const { inviteCode } = useParams<{ inviteCode: string }>()
+  const { user, loading } = useAuth()
+  const navigate = useNavigate()
+  const [serverInfo, setServerInfo] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (!inviteCode) {
-      setError('Invalid invite link');
-      setLoading(false);
-      return;
+    if (inviteCode) {
+      // TODO: Fetch server info from invite code
+      setServerInfo({
+        name: 'Sample Server',
+        memberCount: 42,
+        description: 'A sample server for testing invites'
+      })
+      setIsLoading(false)
     }
-
-    const fetchServerInfo = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('servers')
-          .select(`
-            *,
-            profiles!servers_owner_id_fkey (
-              username,
-              display_name
-            )
-          `)
-          .eq('invite_code', inviteCode)
-          .single();
-
-        if (error || !data) {
-          setError('This invite link is invalid or has expired');
-          setLoading(false);
-          return;
-        }
-
-        setServerInfo(data);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to load server information');
-        setLoading(false);
-      }
-    };
-
-    fetchServerInfo();
-  }, [inviteCode]);
+  }, [inviteCode])
 
   const handleJoinServer = async () => {
-    if (!inviteCode) return;
-
-    const server = await joinServerByInvite(inviteCode);
-    if (server) {
-      navigate('/');
+    if (!user) {
+      navigate('/auth')
+      return
     }
-  };
 
-  if (authLoading || loading) {
+    try {
+      // TODO: Join server logic
+      console.log('Joining server with invite code:', inviteCode)
+      navigate('/app')
+    } catch (error) {
+      console.error('Error joining server:', error)
+    }
+  }
+
+  if (loading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+          <MessageCircle className="w-12 h-12 mx-auto mb-4 animate-pulse text-white" />
+          <p className="text-white">Loading invite...</p>
         </div>
       </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <MessageSquare className="w-12 h-12 text-primary mx-auto mb-4" />
-            <CardTitle>Sign in to join</CardTitle>
-            <CardDescription>
-              You need to sign in to join this server
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => navigate('/auth')}
-              className="w-full"
-            >
-              Sign In
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <MessageSquare className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <CardTitle>Invalid Invite</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={() => navigate('/')}
-              className="w-full"
-            >
-              Go Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-2xl font-bold mx-auto mb-4">
-            {serverInfo?.name?.substring(0, 2).toUpperCase()}
-          </div>
-          <CardTitle className="text-xl">{serverInfo?.name}</CardTitle>
-          <CardDescription>
-            {serverInfo?.description || 'A Discord-style server'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-center space-x-4 text-sm text-muted-foreground">
-            <div className="flex items-center space-x-1">
-              <Users className="w-4 h-4" />
-              <span>{serverInfo?.member_count || 0} members</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <MessageCircle className="w-8 h-8 mx-auto text-white mb-2" />
+          <span className="text-2xl font-bold text-white">CrestChat</span>
+        </div>
+
+        {/* Invite Card */}
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <CardHeader className="text-center">
+            <CardTitle className="text-white">You've been invited to join</CardTitle>
+            <CardDescription className="text-gray-300">
+              {serverInfo?.name || 'Unknown Server'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Server Info */}
+            <div className="bg-white/5 rounded-lg p-4">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
+                  <MessageCircle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold">{serverInfo?.name || 'Unknown Server'}</h3>
+                  <div className="flex items-center space-x-1 text-gray-300 text-sm">
+                    <Users className="w-4 h-4" />
+                    <span>{serverInfo?.memberCount || 0} members</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-gray-300 text-sm">
+                {serverInfo?.description || 'Join this server to start chatting with the community!'}
+              </p>
             </div>
-            <div className="flex items-center space-x-1">
-              <MessageSquare className="w-4 h-4" />
-              <span>Text channels</span>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Button 
-              onClick={handleJoinServer}
-              disabled={joinLoading}
-              className="w-full"
-            >
-              {joinLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Joining...
-                </>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {user ? (
+                <Button
+                  onClick={handleJoinServer}
+                  className="w-full gradient-blurple text-white"
+                >
+                  Accept Invite
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
               ) : (
-                'Join Server'
+                <Button
+                  onClick={() => navigate('/auth')}
+                  className="w-full gradient-blurple text-white"
+                >
+                  Sign in to join
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
               )}
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => navigate('/')}
-              className="w-full"
-            >
-              Cancel
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              
+              <Button
+                variant="outline"
+                onClick={() => navigate('/')}
+                className="w-full border-white/20 text-white hover:bg-white/10"
+              >
+                Back to home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
+  )
 }

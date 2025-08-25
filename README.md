@@ -1,34 +1,32 @@
-# LovableChat - Discord-Style Chat Application
+# CrestChat - Discord-like Chat Application
 
-A modern, real-time chat application built with React, TypeScript, Supabase, and Tailwind CSS. Features a beautiful Discord-inspired interface with server management, real-time messaging, and user authentication.
+A modern, real-time chat application built with React, TypeScript, and Supabase, designed to replicate Discord's core functionality.
 
 ## 🚀 Features
 
-- **Real-time Messaging**: Instant messaging with Supabase real-time subscriptions
-- **Server Management**: Create and join servers with custom channels
-- **User Authentication**: Secure authentication with Supabase Auth
-- **Server Invites**: Generate and share invite codes to join servers
-- **Mobile Responsive**: Beautiful interface that works on all devices
-- **Discord-like UI**: Familiar interface with modern design
-- **Role-based Permissions**: Server roles (owner, admin, moderator, member)
-- **Online Users**: See who's online in your servers
-- **Channel Types**: Text and voice channels (voice UI ready for WebRTC integration)
+- **Real-time Messaging**: Instant message delivery with Supabase real-time subscriptions
+- **User Authentication**: Secure sign-up and sign-in with Supabase Auth
+- **Server Management**: Create and manage Discord-style servers
+- **Channel System**: Text channels with real-time messaging
+- **User Profiles**: Customizable user profiles with avatars and status
+- **Responsive Design**: Mobile-friendly interface with Discord-inspired UI
+- **Modern Tech Stack**: Built with React 18, TypeScript, Tailwind CSS, and shadcn/ui
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite
-- **UI Components**: Shadcn/ui, Tailwind CSS
+- **UI Components**: shadcn/ui, Radix UI, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Auth, Real-time)
 - **State Management**: React Query (TanStack Query)
 - **Routing**: React Router DOM
 - **Icons**: Lucide React
-- **Deployment**: Netlify
+- **Deployment**: Netlify ready
 
 ## 📦 Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
+   git clone <repository-url>
    cd crest-chat
    ```
 
@@ -37,149 +35,128 @@ A modern, real-time chat application built with React, TypeScript, Supabase, and
    npm install
    ```
 
-3. **Set up Supabase**
-   - Create a new Supabase project at [supabase.com](https://supabase.com)
-   - Run the database migrations in `supabase/migrations/`
-   - Copy your Supabase URL and anon key
-
-4. **Configure environment variables**
-   Create a `.env.local` file:
+3. **Set up environment variables**
+   ```bash
+   cp env.example .env.local
+   ```
+   
+   Edit `.env.local` and add your Supabase credentials:
    ```env
-   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
+
+4. **Set up the database**
+   - Go to your Supabase Dashboard
+   - Navigate to SQL Editor
+   - Copy and paste the contents of `complete-database-setup.sql`
+   - Run the script to create all tables, functions, and policies
 
 5. **Start the development server**
    ```bash
    npm run dev
    ```
 
-## 🚀 Deployment to Netlify
-
-### Option 1: Deploy via Netlify UI
-
-1. **Push your code to GitHub**
-   ```bash
-   git add .
-   git commit -m "Initial commit"
-   git push origin main
-   ```
-
-2. **Connect to Netlify**
-   - Go to [netlify.com](https://netlify.com)
-   - Click "New site from Git"
-   - Connect your GitHub repository
-   - Set build command: `npm run build`
-   - Set publish directory: `dist`
-   - Click "Deploy site"
-
-3. **Configure environment variables**
-   - Go to Site settings > Environment variables
-   - Add your Supabase URL and anon key:
-     - `VITE_SUPABASE_URL`
-     - `VITE_SUPABASE_ANON_KEY`
-
-### Option 2: Deploy via Netlify CLI
-
-1. **Install Netlify CLI**
-   ```bash
-   npm install -g netlify-cli
-   ```
-
-2. **Build and deploy**
-   ```bash
-   npm run build
-   netlify deploy --prod --dir=dist
-   ```
-
-3. **Configure environment variables**
-   ```bash
-   netlify env:set VITE_SUPABASE_URL your_supabase_url
-   netlify env:set VITE_SUPABASE_ANON_KEY your_supabase_anon_key
-   ```
-
 ## 🗄️ Database Setup
 
-The application uses Supabase with the following main tables:
+The application uses a comprehensive Discord-like database schema with the following tables:
 
-- **profiles**: User profiles and information
-- **servers**: Server information and settings
-- **channels**: Text and voice channels within servers
+- **profiles**: User profiles with Discord-like fields
+- **servers**: Discord servers with all features
+- **channels**: Text, voice, and other channel types
+- **messages**: Chat messages with reactions and embeds
 - **server_members**: Server membership and roles
-- **messages**: Chat messages with real-time updates
-- **friendships**: Friend relationships between users
-- **direct_messages**: Private messages between users
+- **user_settings**: User preferences and settings
+- **invites**: Server invitation system
+- **voice_states**: Voice chat states
+- **audit_logs**: Server audit logs
 
-Run the migrations in `supabase/migrations/` to set up the database schema.
+## 🎨 UI Components
 
-## 🎨 Customization
+The application uses shadcn/ui components for a consistent, modern design:
 
-### Styling
-The application uses Tailwind CSS with a custom Discord-inspired design system. You can customize colors and styles in:
-- `src/index.css` - Main CSS variables and utilities
-- `tailwind.config.ts` - Tailwind configuration
-
-### Components
-All UI components are built with Shadcn/ui and can be customized in the `src/components/ui/` directory.
+- **Button**: Various button styles and sizes
+- **Input**: Form inputs with validation
+- **Card**: Content containers
+- **Tabs**: Tabbed interfaces
+- **Tooltip**: Hover tooltips
+- **And more...**
 
 ## 🔧 Development
 
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-
 ### Project Structure
-
 ```
 src/
-├── components/          # React components
-│   ├── ui/             # Shadcn/ui components
-│   ├── AppLayout.tsx   # Main layout component
-│   ├── ChatArea.tsx    # Chat interface
-│   ├── ServerSidebar.tsx # Server navigation
-│   └── OnlineUsers.tsx # Online users list
+├── components/          # Reusable UI components
+│   └── ui/             # shadcn/ui components
 ├── hooks/              # Custom React hooks
 ├── pages/              # Page components
-├── integrations/       # External integrations
+├── lib/                # Utility functions
+├── integrations/       # External service integrations
 │   └── supabase/       # Supabase client and types
-└── lib/                # Utility functions
+└── assets/             # Static assets
 ```
+
+### Available Scripts
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run lint` - Run ESLint
+- `npm run preview` - Preview production build
+
+## 🚀 Deployment
+
+### Netlify Deployment
+
+1. **Connect your repository** to Netlify
+2. **Set build settings**:
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+3. **Add environment variables** in Netlify dashboard
+4. **Deploy!**
+
+### Environment Variables for Production
+Make sure to set these in your deployment platform:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+## 🔒 Security
+
+- **Row Level Security (RLS)**: All database tables have proper RLS policies
+- **Authentication**: Secure user authentication with Supabase Auth
+- **Input Validation**: Client and server-side validation
+- **CORS**: Proper CORS configuration for API endpoints
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 📄 License
+## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
-If you encounter any issues or have questions:
+If you encounter any issues:
 
-1. Check the [Supabase documentation](https://supabase.com/docs)
-2. Review the [React documentation](https://react.dev)
-3. Open an issue in this repository
+1. Check the [Issues](https://github.com/your-repo/issues) page
+2. Create a new issue with detailed information
+3. Include your environment details and error messages
 
 ## 🎯 Roadmap
 
-- [ ] Voice channels with WebRTC
-- [ ] File uploads and attachments
+- [ ] Voice and video chat
+- [ ] File uploads and sharing
+- [ ] Server roles and permissions
+- [ ] Direct messaging
 - [ ] Message reactions and emojis
-- [ ] Threaded conversations
-- [ ] Server categories and organization
-- [ ] Advanced moderation tools
-- [ ] Push notifications
-- [ ] Dark/light theme toggle
-- [ ] User status and activity
-- [ ] Server analytics and insights
+- [ ] Server discovery
+- [ ] Mobile app
+- [ ] Bot API
+- [ ] Webhook support
 
 ---
 

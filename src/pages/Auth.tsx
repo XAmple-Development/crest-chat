@@ -1,180 +1,171 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { MessageCircle } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
-export default function Auth() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signUp, signIn } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
+export function Auth() {
+  const [isLoading, setIsLoading] = useState(false)
+  const { signIn, signUp } = useAuth()
+  const navigate = useNavigate()
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
 
-    const { error } = await signUp(email, password, username);
-    
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message
-      });
-    } else {
-      toast({
-        title: "Account created!",
-        description: "Check your email to verify your account."
-      });
-      navigate('/');
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    try {
+      await signIn(email, password)
+      navigate('/app')
+    } catch (error) {
+      console.error('Sign in error:', error)
+    } finally {
+      setIsLoading(false)
     }
-    
-    setLoading(false);
-  };
+  }
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
 
-    const { error } = await signIn(email, password);
-    
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message
-      });
-    } else {
-      navigate('/');
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const username = formData.get('username') as string
+
+    try {
+      await signUp(email, password, username)
+      navigate('/app')
+    } catch (error) {
+      console.error('Sign up error:', error)
+    } finally {
+      setIsLoading(false)
     }
-    
-    setLoading(false);
-  };
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center mb-8">
-          <MessageSquare className="w-8 h-8 text-primary mr-2" />
-          <h1 className="text-2xl font-bold text-foreground">LovableChat</h1>
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center space-x-2">
+            <MessageCircle className="w-8 h-8 text-white" />
+            <span className="text-2xl font-bold text-white">CrestChat</span>
+          </Link>
         </div>
 
-        <Card className="border-discord-gray-300">
+        {/* Auth Card */}
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-foreground">Welcome</CardTitle>
-            <CardDescription>
-              Sign in to your account or create a new one
+            <CardTitle className="text-white">Welcome back!</CardTitle>
+            <CardDescription className="text-gray-300">
+              We're so excited to see you again!
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-white/10">
+                <TabsTrigger value="signin" className="text-white">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="text-white">Sign Up</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="signin">
+              <TabsContent value="signin" className="mt-6">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="email" className="text-white">Email</Label>
                     <Input
-                      id="signin-email"
+                      id="email"
+                      name="email"
                       type="email"
                       placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
                       required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                     />
                   </div>
-                  
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <Label htmlFor="password" className="text-white">Password</Label>
                     <Input
-                      id="signin-password"
+                      id="password"
+                      name="password"
                       type="password"
                       placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
                       required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                     />
                   </div>
-
                   <Button
                     type="submit"
                     className="w-full gradient-blurple text-white"
-                    disabled={loading}
+                    disabled={isLoading}
                   >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : null}
-                    Sign In
+                    {isLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
               </TabsContent>
 
-              <TabsContent value="signup">
+              <TabsContent value="signup" className="mt-6">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-username">Username</Label>
+                    <Label htmlFor="username" className="text-white">Username</Label>
                     <Input
-                      id="signup-username"
+                      id="username"
+                      name="username"
                       type="text"
                       placeholder="Choose a username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
                       required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                     />
                   </div>
-                  
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email" className="text-white">Email</Label>
                     <Input
                       id="signup-email"
+                      name="email"
                       type="email"
                       placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
                       required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                     />
                   </div>
-                  
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password" className="text-white">Password</Label>
                     <Input
                       id="signup-password"
+                      name="password"
                       type="password"
                       placeholder="Create a password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
                       required
+                      minLength={6}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                     />
                   </div>
-
                   <Button
                     type="submit"
                     className="w-full gradient-blurple text-white"
-                    disabled={loading}
+                    disabled={isLoading}
                   >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : null}
-                    Create Account
+                    {isLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Back to home */}
+        <div className="text-center mt-6">
+          <Link to="/" className="text-gray-300 hover:text-white transition-colors">
+            ← Back to home
+          </Link>
+        </div>
       </div>
     </div>
-  );
+  )
 }
