@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
+import { ensureDefaultServerAndChannel } from '@/lib/provision'
 
 interface AuthUser {
   id: string
@@ -34,6 +35,9 @@ export function useAuth() {
         console.log('Auth state change:', { event, userId: session?.user?.id, email: session?.user?.email })
         if (event === 'SIGNED_IN' && session?.user) {
           await loadUserData(session.user)
+          // Provision default workspace if none exists for this user
+          const emailPrefix = (session.user.email || 'user').split('@')[0]
+          await ensureDefaultServerAndChannel(session.user.id, emailPrefix)
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
         }
