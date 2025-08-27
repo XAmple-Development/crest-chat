@@ -88,7 +88,7 @@ export default function ChatApp() {
 
       {/* User Area */}
       <div className="w-64 bg-discord-sidebar border-l border-gray-700 p-4">
-        <UserArea />
+        <UserArea server={currentServer} />
       </div>
 
       {/* Server Settings Modal */}
