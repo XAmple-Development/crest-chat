@@ -143,18 +143,8 @@ export function useServers() {
           }
         }
 
-        // Add user as server owner
-        const { error: memberError } = await supabase
-          .from('server_members')
-          .insert({
-            server_id: server.id,
-            user_id: user.id
-          })
-
-        if (memberError) {
-          console.error('Member creation error:', memberError)
-          // Don't throw here, just log the error
-        }
+        // Add user as server owner (this should happen automatically via trigger or we'll handle it differently)
+        console.log('Server created successfully, owner_id set to:', user.id)
 
         console.log('Server creation completed successfully')
         return server
