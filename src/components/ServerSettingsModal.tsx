@@ -1,58 +1,42 @@
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Settings, Users, Hash, Volume2, Megaphone, Edit, Trash2, Plus, Shield } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/integrations/supabase/client'
+import { supabase } from '../integrations/supabase/client'
+import { Server, Channel } from '../integrations/supabase/types'
 import { toast } from 'sonner'
-import { Server, Channel } from '@/integrations/supabase/types'
 
 interface ServerSettingsModalProps {
   server: Server | null
   isOpen: boolean
   onClose: () => void
-  onServerUpdate: (updatedServer: Server) => void
+  onServerUpdate: () => void
   onChannelUpdate: () => void
 }
 
-export function ServerSettingsModal({ 
-  server, 
-  isOpen, 
-  onClose, 
+export default function ServerSettingsModal({
+  server,
+  isOpen,
+  onClose,
   onServerUpdate,
-  onChannelUpdate 
+  onChannelUpdate
 }: ServerSettingsModalProps) {
-  const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'overview' | 'channels' | 'members' | 'roles' | 'safety'>('overview')
-  const [isEditing, setIsEditing] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  
-  // Server form data
-  const [serverName, setServerName] = useState('')
-  const [serverDescription, setServerDescription] = useState('')
-  const [privacyLevel, setPrivacyLevel] = useState<'public' | 'private' | 'invite_only'>('public')
-  
-  // Channel form data
-  const [channelName, setChannelName] = useState('')
-  const [channelType, setChannelType] = useState<'text' | 'voice' | 'announcement'>('text')
-  const [showCreateChannel, setShowCreateChannel] = useState(false)
-  
-  // Members data
+  const [activeTab, setActiveTab] = useState('overview')
+  const [loading, setLoading] = useState(false)
+  const [channels, setChannels] = useState<Channel[]>([])
   const [members, setMembers] = useState<any[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
-  
-  // Channels data
-  const [channels, setChannels] = useState<Channel[]>([])
-  const [loadingChannels, setLoadingChannels] = useState(false)
-
-  const isOwner = server?.owner_id === user?.id
+  const [serverForm, setServerForm] = useState({
+    name: '',
+    description: '',
+    privacyLevel: 'public'
+  })
+  const [newChannelName, setNewChannelName] = useState('')
 
   useEffect(() => {
     if (server && isOpen) {
-      setServerName(server.name)
-      setServerDescription(server.description || '')
-      setPrivacyLevel(server.privacy_level as any || 'public')
+      setServerForm({
+        name: server.name,
+        description: server.description || '',
+        privacyLevel: server.privacy_level
+      })
       loadChannels()
       loadMembers()
     }
@@ -60,21 +44,18 @@ export function ServerSettingsModal({
 
   const loadChannels = async () => {
     if (!server) return
-    setLoadingChannels(true)
     try {
       const { data, error } = await supabase
         .from('channels')
         .select('*')
         .eq('server_id', server.id)
         .order('position', { ascending: true })
-      
+
       if (error) throw error
       setChannels(data || [])
     } catch (error) {
       console.error('Error loading channels:', error)
       toast.error('Failed to load channels')
-    } finally {
-      setLoadingChannels(false)
     }
   }
 
@@ -83,7 +64,7 @@ export function ServerSettingsModal({
     setLoadingMembers(true)
     try {
       console.log('Loading members for server:', server.id)
-      
+
       const { data, error } = await supabase
         .from('server_members')
         .select(`
@@ -97,12 +78,12 @@ export function ServerSettingsModal({
           )
         `)
         .eq('server_id', server.id)
-      
+
       if (error) {
         console.error('Supabase error loading members:', error)
         throw error
       }
-      
+
       console.log('Members loaded successfully:', data)
       setMembers(data || [])
     } catch (error) {
@@ -114,401 +95,286 @@ export function ServerSettingsModal({
   }
 
   const handleSaveServer = async () => {
-    if (!server || !isOwner) return
-    setIsLoading(true)
-    
+    if (!server) return
+    setLoading(true)
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('servers')
         .update({
-          name: serverName,
-          description: serverDescription || null,
-          privacy_level: privacyLevel,
-          updated_at: new Date().toISOString()
+          name: serverForm.name,
+          description: serverForm.description,
+          privacy_level: serverForm.privacyLevel
         })
         .eq('id', server.id)
-        .select()
-        .single()
-      
+
       if (error) throw error
-      
-      onServerUpdate(data)
-      setIsEditing(false)
       toast.success('Server updated successfully!')
-    } catch (error) {
-      console.error('Error updating server:', error)
-      toast.error('Failed to update server')
+      onServerUpdate()
+    } catch (error: any) {
+      toast.error(`Failed to update server: ${error.message}`)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const handleCreateChannel = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!server || !channelName.trim()) return
-    
+  const handleCreateChannel = async () => {
+    if (!server || !newChannelName.trim()) return
     try {
       const { error } = await supabase
         .from('channels')
         .insert({
+          name: newChannelName.trim(),
           server_id: server.id,
-          name: channelName.trim(),
-          type: channelType,
-          position: channels.length
+          type: 'text'
         })
-      
+
       if (error) throw error
-      
-      setChannelName('')
-      setChannelType('text')
-      setShowCreateChannel(false)
+      toast.success('Channel created successfully!')
+      setNewChannelName('')
       loadChannels()
       onChannelUpdate()
-      toast.success(`Channel "${channelName}" created!`)
-    } catch (error) {
-      console.error('Error creating channel:', error)
-      toast.error('Failed to create channel')
+    } catch (error: any) {
+      toast.error(`Failed to create channel: ${error.message}`)
     }
   }
 
-  const handleDeleteChannel = async (channelId: string, channelName: string) => {
-    if (!confirm(`Are you sure you want to delete the channel "${channelName}"?`)) return
-    
+  const handleDeleteChannel = async (channelId: string) => {
+    if (!confirm('Are you sure you want to delete this channel?')) return
     try {
       const { error } = await supabase
         .from('channels')
         .delete()
         .eq('id', channelId)
-      
+
       if (error) throw error
-      
+      toast.success('Channel deleted successfully!')
       loadChannels()
       onChannelUpdate()
-      toast.success(`Channel "${channelName}" deleted!`)
-    } catch (error) {
-      console.error('Error deleting channel:', error)
-      toast.error('Failed to delete channel')
+    } catch (error: any) {
+      toast.error(`Failed to delete channel: ${error.message}`)
     }
   }
 
   const handleRemoveMember = async (userId: string, username: string) => {
-    if (!server || !isOwner) return
-    if (!confirm(`Are you sure you want to remove ${username} from the server?`)) return
-    
+    if (!server || !confirm(`Are you sure you want to remove ${username} from this server?`)) return
     try {
       const { error } = await supabase
         .from('server_members')
         .delete()
         .eq('server_id', server.id)
         .eq('user_id', userId)
-      
-      if (error) throw error
-      
-      loadMembers()
-      toast.success(`${username} removed from server`)
-    } catch (error) {
-      console.error('Error removing member:', error)
-      toast.error('Failed to remove member')
-    }
-  }
 
-  const getChannelIcon = (type: string) => {
-    switch (type) {
-      case 'text': return <Hash className="w-4 h-4" />
-      case 'voice': return <Volume2 className="w-4 h-4" />
-      case 'announcement': return <Megaphone className="w-4 h-4" />
-      default: return <Hash className="w-4 h-4" />
+      if (error) throw error
+      toast.success('Member removed successfully!')
+      loadMembers()
+    } catch (error: any) {
+      toast.error(`Failed to remove member: ${error.message}`)
     }
   }
 
   if (!isOpen || !server) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-background rounded-lg w-full max-w-4xl h-[80vh] max-h-[600px] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-discord-sidebar rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b border-border">
+        <div className="p-6 border-b border-gray-700">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                {server.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold">{server.name}</h2>
-                <p className="text-sm text-muted-foreground">Server Settings</p>
-              </div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <span className="sr-only">Close</span>
-              ×
-            </Button>
+            <h2 className="text-xl font-bold text-discord-text">Server Settings</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-discord-channel rounded-md transition-colors"
+            >
+              <svg className="w-5 h-5 text-discord-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-border">
-          {[
-            { id: 'overview', label: 'Overview', icon: Settings },
-            { id: 'channels', label: 'Channels', icon: Hash },
-            { id: 'members', label: 'Members', icon: Users },
-            { id: 'roles', label: 'Roles', icon: Shield },
-            { id: 'safety', label: 'Safety', icon: Shield }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-4">Server Information</h3>
+        <div className="flex h-[calc(90vh-120px)]">
+          {/* Tabs */}
+          <div className="w-48 bg-discord-channel p-4">
+            <nav className="space-y-1">
+              {[
+                { id: 'overview', label: 'Overview' },
+                { id: 'channels', label: 'Channels' },
+                { id: 'members', label: 'Members' },
+                { id: 'roles', label: 'Roles' },
+                { id: 'safety', label: 'Safety' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-discord-primary text-white'
+                      : 'text-discord-muted hover:text-discord-text hover:bg-discord-channel/50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 p-6 overflow-y-auto">
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-discord-text">Server Overview</h3>
+                
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="server-name">Server Name</Label>
-                    <Input
-                      id="server-name"
-                      value={serverName}
-                      onChange={(e) => setServerName(e.target.value)}
-                      disabled={!isEditing || !isOwner}
+                    <label className="block text-sm font-medium text-discord-text mb-2">
+                      Server Name
+                    </label>
+                    <input
+                      type="text"
+                      value={serverForm.name}
+                      onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
+                      className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
                     />
                   </div>
+
                   <div>
-                    <Label htmlFor="server-description">Description</Label>
+                    <label className="block text-sm font-medium text-discord-text mb-2">
+                      Description
+                    </label>
                     <textarea
-                      id="server-description"
-                      value={serverDescription}
-                      onChange={(e) => setServerDescription(e.target.value)}
-                      disabled={!isEditing || !isOwner}
+                      value={serverForm.description}
+                      onChange={(e) => setServerForm({ ...serverForm, description: e.target.value })}
+                      className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
                       rows={3}
-                      className="w-full p-2 border rounded-md bg-background disabled:opacity-50"
                     />
                   </div>
+
                   <div>
-                    <Label htmlFor="privacy-level">Privacy Level</Label>
+                    <label className="block text-sm font-medium text-discord-text mb-2">
+                      Privacy Level
+                    </label>
                     <select
-                      id="privacy-level"
-                      value={privacyLevel}
-                      onChange={(e) => setPrivacyLevel(e.target.value as any)}
-                      disabled={!isEditing || !isOwner}
-                      className="w-full p-2 border rounded-md bg-background disabled:opacity-50"
+                      value={serverForm.privacyLevel}
+                      onChange={(e) => setServerForm({ ...serverForm, privacyLevel: e.target.value })}
+                      className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
                     >
-                      <option value="public">Public - Anyone can join</option>
-                      <option value="invite_only">Invite Only - Requires invite link</option>
-                      <option value="private">Private - Only owner can add members</option>
+                      <option value="public">Public</option>
+                      <option value="private">Private</option>
+                      <option value="invite_only">Invite Only</option>
                     </select>
                   </div>
+
+                  <button
+                    onClick={handleSaveServer}
+                    disabled={loading}
+                    className="px-4 py-2 bg-discord-primary hover:bg-discord-primary/90 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200"
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
                 </div>
               </div>
+            )}
 
-              {isOwner && (
-                <div className="flex space-x-2">
-                  {isEditing ? (
-                    <>
-                      <Button onClick={handleSaveServer} disabled={isLoading}>
-                        {isLoading ? 'Saving...' : 'Save Changes'}
-                      </Button>
-                      <Button variant="outline" onClick={() => setIsEditing(false)}>
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <Button onClick={() => setIsEditing(true)}>
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Server
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'channels' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Channels</h3>
-                {isOwner && (
-                  <Button onClick={() => setShowCreateChannel(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Channel
-                  </Button>
-                )}
-              </div>
-
-              {loadingChannels ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-                  <p className="text-muted-foreground">Loading channels...</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {channels.map((channel) => (
-                    <div key={channel.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        {getChannelIcon(channel.type)}
-                        <span className="font-medium">{channel.name}</span>
-                        <span className="text-sm text-muted-foreground capitalize">{channel.type}</span>
-                      </div>
-                      {isOwner && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteChannel(channel.id, channel.name)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  {channels.length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">
-                      No channels yet. {isOwner && 'Create your first channel!'}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Create Channel Modal */}
-              {showCreateChannel && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div className="bg-background p-6 rounded-lg w-96 max-w-full mx-4">
-                    <h3 className="text-lg font-semibold mb-4">Create Channel</h3>
-                    <form onSubmit={handleCreateChannel} className="space-y-4">
-                      <div>
-                        <Label htmlFor="channel-name">Channel Name</Label>
-                        <Input
-                          id="channel-name"
-                          value={channelName}
-                          onChange={(e) => setChannelName(e.target.value)}
-                          placeholder="Enter channel name"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="channel-type">Channel Type</Label>
-                        <select
-                          id="channel-type"
-                          value={channelType}
-                          onChange={(e) => setChannelType(e.target.value as any)}
-                          className="w-full p-2 border rounded-md bg-background"
-                        >
-                          <option value="text">Text Channel</option>
-                          <option value="voice">Voice Channel</option>
-                          <option value="announcement">Announcement Channel</option>
-                        </select>
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setShowCreateChannel(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit">
-                          Create Channel
-                        </Button>
-                      </div>
-                    </form>
+            {activeTab === 'channels' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-discord-text">Channels</h3>
+                
+                {/* Create New Channel */}
+                <div className="space-y-4">
+                  <h4 className="text-md font-medium text-discord-text">Create Channel</h4>
+                  <div className="flex space-x-3">
+                    <input
+                      type="text"
+                      value={newChannelName}
+                      onChange={(e) => setNewChannelName(e.target.value)}
+                      placeholder="Enter channel name"
+                      className="flex-1 px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
+                    />
+                    <button
+                      onClick={handleCreateChannel}
+                      disabled={!newChannelName.trim()}
+                      className="px-4 py-2 bg-discord-primary hover:bg-discord-primary/90 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200"
+                    >
+                      Create
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
 
-          {activeTab === 'members' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium">Members ({members.length})</h3>
-              
-              {loadingMembers ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-                  <p className="text-muted-foreground">Loading members...</p>
-                </div>
-              ) : (
+                {/* Channel List */}
                 <div className="space-y-2">
-                  {members.map((member) => (
-                    <div key={member.user_id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <h4 className="text-md font-medium text-discord-text">Existing Channels</h4>
+                  {channels.map((channel) => (
+                    <div key={channel.id} className="flex items-center justify-between p-3 bg-discord-channel rounded-md">
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                          {member.user?.username?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                        <div>
-                          <p className="font-medium">
-                            {member.user?.display_name || member.user?.username || 'Unknown User'}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {member.user?.username}
-                          </p>
-                        </div>
+                        <span className="text-discord-muted">#</span>
+                        <span className="text-discord-text">{channel.name}</span>
                       </div>
-                      {isOwner && member.user_id !== user?.id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveMember(member.user_id, member.user?.username || 'User')}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          Remove
-                        </Button>
-                      )}
+                      <button
+                        onClick={() => handleDeleteChannel(channel.id)}
+                        className="px-3 py-1 bg-discord-danger hover:bg-discord-danger/90 text-white text-sm rounded transition-colors"
+                      >
+                        Delete
+                      </button>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'roles' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium">Roles</h3>
-              <p className="text-muted-foreground">
-                Role management coming soon. For now, server owners have full control.
-              </p>
-            </div>
-          )}
-
-          {activeTab === 'safety' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium">Safety & Privacy</h3>
-              <div className="space-y-4">
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">Privacy Level</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Current: <span className="font-medium capitalize">{privacyLevel}</span>
-                  </p>
-                  {privacyLevel === 'public' && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Anyone can find and join this server
-                    </p>
-                  )}
-                  {privacyLevel === 'invite_only' && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Only users with invite links can join
-                    </p>
-                  )}
-                  {privacyLevel === 'private' && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Only you can add members to this server
-                    </p>
-                  )}
-                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {activeTab === 'members' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-discord-text">Members</h3>
+                
+                {loadingMembers ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-discord-primary mx-auto mb-2"></div>
+                    <p className="text-discord-muted">Loading members...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {members.map((member) => (
+                      <div key={member.user_id} className="flex items-center justify-between p-3 bg-discord-channel rounded-md">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 rounded-full bg-discord-primary flex items-center justify-center text-white text-sm font-medium">
+                            {member.user?.username?.charAt(0).toUpperCase() || 'U'}
+                          </div>
+                          <div>
+                            <p className="text-discord-text font-medium">
+                              {member.user?.display_name || member.user?.username || 'Unknown User'}
+                            </p>
+                            <p className="text-discord-muted text-sm">
+                              {member.user?.username}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveMember(member.user_id, member.user?.username || 'User')}
+                          className="px-3 py-1 bg-discord-danger hover:bg-discord-danger/90 text-white text-sm rounded transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'roles' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-discord-text">Roles</h3>
+                <p className="text-discord-muted">Role management coming soon...</p>
+              </div>
+            )}
+
+            {activeTab === 'safety' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-discord-text">Safety</h3>
+                <p className="text-discord-muted">Safety settings coming soon...</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

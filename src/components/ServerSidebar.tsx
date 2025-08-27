@@ -9,7 +9,6 @@ interface ServerSidebarProps {
   currentChannel: Channel | null
   onServerSelect: (server: Server) => void
   onChannelSelect: (channel: Channel) => void
-  onSignOut: () => void
   user: any
 }
 
@@ -19,7 +18,6 @@ export default function ServerSidebar({
   currentChannel,
   onServerSelect,
   onChannelSelect,
-  onSignOut,
   user
 }: ServerSidebarProps) {
   const { createServer, createChannel, joinServer, refreshServers } = useServers()
@@ -103,15 +101,7 @@ export default function ServerSidebar({
               {user?.email}
             </p>
           </div>
-          <button
-            onClick={onSignOut}
-            className="p-1 hover:bg-discord-channel rounded transition-colors"
-            title="Sign Out"
-          >
-            <svg className="w-4 h-4 text-discord-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
+          <div className="w-4 h-4"></div>
         </div>
       </div>
 

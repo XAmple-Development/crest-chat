@@ -3,13 +3,16 @@ import { useAuth } from '../hooks/useAuth'
 import { useServers } from '../hooks/useServers'
 import ServerSidebar from '../components/ServerSidebar'
 import ChatArea from '../components/ChatArea'
+import UserArea from '../components/UserArea'
+import ServerSettingsModal from '../components/ServerSettingsModal'
 import { Server, Channel } from '../integrations/supabase/types'
 
 export default function ChatApp() {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const { servers, isLoading } = useServers()
   const [currentServer, setCurrentServer] = useState<Server | null>(null)
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null)
+  const [showServerSettings, setShowServerSettings] = useState(false)
 
   const handleServerSelect = (server: Server) => {
     setCurrentServer(server)
@@ -25,8 +28,8 @@ export default function ChatApp() {
     setCurrentChannel(channel)
   }
 
-  const handleSignOut = async () => {
-    await signOut()
+  const handleServerSettings = () => {
+    setShowServerSettings(true)
   }
 
   if (isLoading) {
@@ -49,7 +52,6 @@ export default function ChatApp() {
         currentChannel={currentChannel}
         onServerSelect={handleServerSelect}
         onChannelSelect={handleChannelSelect}
-        onSignOut={handleSignOut}
         user={user}
       />
 
@@ -58,6 +60,7 @@ export default function ChatApp() {
         {currentServer && currentChannel ? (
           <ChatArea
             channel={currentChannel}
+            server={currentServer}
             onServerUpdate={() => {
               // Refresh servers when server is updated
               window.location.reload()
@@ -66,6 +69,7 @@ export default function ChatApp() {
               // Refresh servers when channel is updated
               window.location.reload()
             }}
+            onOpenServerSettings={handleServerSettings}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center">
@@ -81,6 +85,24 @@ export default function ChatApp() {
           </div>
         )}
       </div>
+
+      {/* User Area */}
+      <div className="w-64 bg-discord-sidebar border-l border-gray-700 p-4">
+        <UserArea />
+      </div>
+
+      {/* Server Settings Modal */}
+      <ServerSettingsModal
+        server={currentServer}
+        isOpen={showServerSettings}
+        onClose={() => setShowServerSettings(false)}
+        onServerUpdate={() => {
+          window.location.reload()
+        }}
+        onChannelUpdate={() => {
+          window.location.reload()
+        }}
+      />
     </div>
   )
 }
