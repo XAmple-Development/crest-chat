@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import OnlineUsers from './OnlineUsers'
 
 export default function UserArea() {
   const { user, signOut } = useAuth()
