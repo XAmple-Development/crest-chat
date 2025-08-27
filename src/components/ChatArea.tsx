@@ -1,53 +1,37 @@
-import { useState, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Hash, Send, Edit, Trash2, Settings } from 'lucide-react'
-import { useMessages } from '@/hooks/useMessages'
-import { useAuth } from '@/hooks/useAuth'
-import { Channel, Server } from '@/integrations/supabase/types'
-import { formatTime } from '@/lib/utils'
-import { ServerSettingsModal } from './ServerSettingsModal'
+import { useState } from 'react'
+import { useMessages } from '../hooks/useMessages'
+import { Channel } from '../integrations/supabase/types'
 
 interface ChatAreaProps {
-  currentChannel: Channel | null
-  currentServer: Server | null
+  channel: Channel
+  onServerUpdate: () => void
+  onChannelUpdate: () => void
 }
 
-export function ChatArea({ currentChannel, currentServer }: ChatAreaProps) {
-  const { user } = useAuth()
-  const { messages, sendMessage, editMessage, deleteMessage } = useMessages(currentChannel?.id || null)
+export default function ChatArea({ channel }: ChatAreaProps) {
+  const { messages, messagesLoading, sendMessage, editMessage, deleteMessage } = useMessages(channel.id)
   const [messageContent, setMessageContent] = useState('')
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingMessage, setEditingMessage] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
-  const [showServerSettings, setShowServerSettings] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!messageContent.trim() || !currentChannel) return
+    if (!messageContent.trim()) return
 
     try {
-      await sendMessage.mutateAsync(messageContent.trim())
+      await sendMessage.mutateAsync(messageContent)
       setMessageContent('')
     } catch (error) {
       console.error('Failed to send message:', error)
     }
   }
 
-  const handleEditMessage = async (messageId: string, content: string) => {
-    if (!content.trim()) return
+  const handleEditMessage = async (messageId: string) => {
+    if (!editContent.trim()) return
 
     try {
-      await editMessage.mutateAsync({ messageId, content: content.trim() })
-      setEditingMessageId(null)
+      await editMessage.mutateAsync({ messageId, content: editContent })
+      setEditingMessage(null)
       setEditContent('')
     } catch (error) {
       console.error('Failed to edit message:', error)
@@ -55,199 +39,159 @@ export function ChatArea({ currentChannel, currentServer }: ChatAreaProps) {
   }
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (confirm('Are you sure you want to delete this message?')) {
-      try {
-        await deleteMessage.mutateAsync(messageId)
-      } catch (error) {
-        console.error('Failed to delete message:', error)
-      }
+    if (!confirm('Are you sure you want to delete this message?')) return
+
+    try {
+      await deleteMessage.mutateAsync(messageId)
+    } catch (error) {
+      console.error('Failed to delete message:', error)
     }
   }
 
-  const startEditing = (message: any) => {
-    setEditingMessageId(message.id)
-    setEditContent(message.content || '')
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    })
   }
 
-  const cancelEditing = () => {
-    setEditingMessageId(null)
-    setEditContent('')
-  }
-
-  const handleServerUpdate = (_updatedServer: Server) => {
-    // This will be handled by the parent component
-    window.location.reload() // Simple refresh for now
-  }
-
-  const handleChannelUpdate = () => {
-    // This will be handled by the parent component
-    window.location.reload() // Simple refresh for now
-  }
-
-  if (!currentChannel) {
+  if (messagesLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <Hash className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-semibold mb-2">Select a Channel</h2>
-          <p className="text-muted-foreground">
-            Choose a channel to start chatting
-          </p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-discord-primary mx-auto mb-2"></div>
+          <p className="text-discord-muted">Loading messages...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col">
       {/* Channel Header */}
-      <div className="h-12 bg-card border-b border-border flex items-center justify-between px-4">
-        <div className="flex items-center">
-          <Hash className="w-5 h-5 mr-2 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">{currentChannel.name}</h2>
-          {currentChannel.description && (
-            <span className="ml-2 text-sm text-muted-foreground">
-              - {currentChannel.description}
-            </span>
-          )}
+      <div className="bg-discord-channel border-b border-gray-700 px-6 py-4">
+        <div className="flex items-center space-x-3">
+          <span className="text-discord-muted text-2xl">#</span>
+          <div>
+            <h2 className="text-xl font-bold text-discord-text">{channel.name}</h2>
+            <p className="text-sm text-discord-muted">
+              {channel.description || 'No description'}
+            </p>
+          </div>
         </div>
-        
-        {/* Server Settings Button (only for owners) */}
-        {currentServer && currentServer.owner_id === user?.id && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowServerSettings(true)}
-            className="h-8 w-8 p-0"
-            title="Server Settings"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
-        )}
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 discord-scrollbar">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.length === 0 ? (
-          <div className="text-center text-muted-foreground">
-            <p>No messages yet. Start the conversation!</p>
+          <div className="text-center py-8">
+            <p className="text-discord-muted">No messages yet. Start the conversation!</p>
           </div>
         ) : (
           messages.map((message) => (
             <div key={message.id} className="flex space-x-3 group">
               {/* User Avatar */}
-                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium">
-                  {message.author?.username?.charAt(0).toUpperCase() || 'U'}
-                </div>
+              <div className="w-8 h-8 rounded-full bg-discord-primary flex items-center justify-center text-white text-sm font-medium">
+                {message.author?.username?.charAt(0).toUpperCase() || 'U'}
+              </div>
 
               {/* Message Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
-                                      <span className="font-medium text-sm">
-                      {message.author?.display_name || message.author?.username || 'Unknown User'}
-                    </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="font-medium text-sm text-discord-text">
+                    {message.author?.display_name || message.author?.username || 'Unknown User'}
+                  </span>
+                  <span className="text-xs text-discord-muted">
                     {formatTime(message.created_at)}
                   </span>
                   {message.is_edited && (
-                    <span className="text-xs text-muted-foreground">(edited)</span>
+                    <span className="text-xs text-discord-muted">(edited)</span>
                   )}
                 </div>
 
-                {editingMessageId === message.id ? (
+                {editingMessage === message.id ? (
                   <div className="space-y-2">
-                    <Input
+                    <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleEditMessage(message.id, editContent)
-                        } else if (e.key === 'Escape') {
-                          cancelEditing()
-                        }
-                      }}
+                      className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
+                      rows={2}
                       autoFocus
                     />
                     <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleEditMessage(message.id, editContent)}
+                      <button
+                        onClick={() => handleEditMessage(message.id)}
+                        className="px-3 py-1 bg-discord-primary hover:bg-discord-primary/90 text-white text-sm rounded transition-colors"
                       >
                         Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={cancelEditing}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingMessage(null)
+                          setEditContent('')
+                        }}
+                        className="px-3 py-1 bg-discord-channel hover:bg-discord-channel/80 text-discord-text text-sm rounded transition-colors"
                       >
                         Cancel
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-start justify-between group">
-                    <p className="text-sm whitespace-pre-wrap break-words">
-                      {message.content}
-                    </p>
+                    <p className="text-discord-text whitespace-pre-wrap">{message.content}</p>
                     
                     {/* Message Actions */}
-                    {user?.id === message.author_id && (
-                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => startEditing(message)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteMessage(message.id)}
-                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 ml-2">
+                      <button
+                        onClick={() => {
+                          setEditingMessage(message.id)
+                          setEditContent(message.content)
+                        }}
+                        className="p-1 hover:bg-discord-channel rounded transition-colors"
+                        title="Edit message"
+                      >
+                        <svg className="w-4 h-4 text-discord-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMessage(message.id)}
+                        className="p-1 hover:bg-discord-danger rounded transition-colors"
+                        title="Delete message"
+                      >
+                        <svg className="w-4 h-4 text-discord-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           ))
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input */}
-      <div className="p-4 border-t border-border">
-        <form onSubmit={handleSendMessage} className="flex space-x-2">
-          <Input
+      <div className="p-6 border-t border-gray-700">
+        <form onSubmit={handleSendMessage} className="flex space-x-3">
+          <input
+            type="text"
             value={messageContent}
             onChange={(e) => setMessageContent(e.target.value)}
-            placeholder={`Message #${currentChannel.name}`}
-            className="flex-1"
+            placeholder={`Message #${channel.name}`}
+            className="flex-1 px-4 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
             disabled={sendMessage.isPending}
           />
-          <Button
+          <button
             type="submit"
-            size="icon"
-            disabled={!messageContent.trim() || sendMessage.isPending}
+            disabled={sendMessage.isPending || !messageContent.trim()}
+            className="px-6 py-2 bg-discord-primary hover:bg-discord-primary/90 disabled:opacity-50 text-white font-medium rounded-md transition-colors duration-200"
           >
-            <Send className="w-4 h-4" />
-          </Button>
+            {sendMessage.isPending ? 'Sending...' : 'Send'}
+          </button>
         </form>
       </div>
-
-      {/* Server Settings Modal */}
-      <ServerSettingsModal
-        server={currentServer}
-        isOpen={showServerSettings}
-        onClose={() => setShowServerSettings(false)}
-        onServerUpdate={handleServerUpdate}
-        onChannelUpdate={handleChannelUpdate}
-      />
     </div>
   )
 }

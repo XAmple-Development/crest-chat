@@ -47,6 +47,8 @@ export interface Server {
   premium_tier: number
   created_at: string
   updated_at: string
+  channels?: Channel[]
+  isMember?: boolean
 }
 
 export interface Channel {

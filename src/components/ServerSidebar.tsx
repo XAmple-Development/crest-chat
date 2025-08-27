@@ -1,306 +1,264 @@
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { MessageCircle, Plus, Hash, Volume2, Megaphone, LogOut, Settings } from 'lucide-react'
-import { useServers } from '@/hooks/useServers'
-import { useAuth } from '@/hooks/useAuth'
-import { Server, Channel } from '@/integrations/supabase/types'
-import { ServerSettingsModal } from './ServerSettingsModal'
+import { useServers } from '../hooks/useServers'
+import { Server, Channel } from '../integrations/supabase/types'
+import { toast } from 'sonner'
 
 interface ServerSidebarProps {
+  servers: Server[]
   currentServer: Server | null
-  setCurrentServer: (server: Server | null) => void
   currentChannel: Channel | null
-  setCurrentChannel: (channel: Channel | null) => void
+  onServerSelect: (server: Server) => void
+  onChannelSelect: (channel: Channel) => void
+  onSignOut: () => void
+  user: any
 }
 
-export function ServerSidebar({ 
-  currentServer, 
-  setCurrentServer, 
-  currentChannel, 
-  setCurrentChannel 
+export default function ServerSidebar({
+  servers,
+  currentServer,
+  currentChannel,
+  onServerSelect,
+  onChannelSelect,
+  onSignOut,
+  user
 }: ServerSidebarProps) {
-  const { user, signOut } = useAuth()
-  const { servers, createServer, createChannel, joinServer, refreshServers } = useServers()
+  const { createServer, createChannel, joinServer, refreshServers } = useServers()
   const [showCreateServer, setShowCreateServer] = useState(false)
   const [showCreateChannel, setShowCreateChannel] = useState(false)
-  const [showServerSettings, setShowServerSettings] = useState(false)
-  const [serverName, setServerName] = useState('')
-  const [serverDescription, setServerDescription] = useState('')
-  const [serverPrivacy, setServerPrivacy] = useState<'public' | 'private' | 'invite_only'>('public')
-  const [channelName, setChannelName] = useState('')
-  const [channelType, setChannelType] = useState<'text' | 'voice' | 'announcement'>('text')
+  const [serverForm, setServerForm] = useState({ name: '', description: '', privacyLevel: 'public' })
+  const [channelForm, setChannelForm] = useState({ name: '', type: 'text' })
 
-  const handleCreateServer = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateServer = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Creating server:', { serverName, serverDescription, serverPrivacy })
-    if (!serverName.trim()) return
+    if (!serverForm.name.trim()) {
+      toast.error('Server name is required')
+      return
+    }
 
     try {
-      await createServer.mutateAsync({
-        name: serverName.trim(),
-        description: serverDescription.trim() || undefined,
-        privacyLevel: serverPrivacy
-      })
-      setServerName('')
-      setServerDescription('')
-      setServerPrivacy('public')
+      await createServer.mutateAsync(serverForm)
       setShowCreateServer(false)
+      setServerForm({ name: '', description: '', privacyLevel: 'public' })
     } catch (error) {
       console.error('Failed to create server:', error)
     }
   }
 
-  const handleCreateChannel = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateChannel = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Creating channel:', { channelName, channelType, currentServer })
-    if (!channelName.trim() || !currentServer) return
+    if (!currentServer || !channelForm.name.trim()) {
+      toast.error('Channel name is required')
+      return
+    }
 
     try {
       await createChannel.mutateAsync({
+        name: channelForm.name,
         serverId: currentServer.id,
-        name: channelName.trim(),
-        type: channelType
+        type: channelForm.type
       })
-      setChannelName('')
-      setChannelType('text')
       setShowCreateChannel(false)
+      setChannelForm({ name: '', type: 'text' })
     } catch (error) {
       console.error('Failed to create channel:', error)
     }
   }
 
-  const getChannelIcon = (type: string) => {
-    switch (type) {
-      case 'text':
-        return <Hash className="w-4 h-4" />
-      case 'voice':
-        return <Volume2 className="w-4 h-4" />
-      case 'announcement':
-        return <Megaphone className="w-4 h-4" />
-      default:
-        return <Hash className="w-4 h-4" />
+  const handleJoinServer = async (server: Server) => {
+    try {
+      await joinServer.mutateAsync(server.id)
+    } catch (error) {
+      console.error('Failed to join server:', error)
     }
   }
 
-  const handleServerUpdate = (_updatedServer: Server) => {
-    // This will trigger a refresh of the servers list
-    refreshServers()
-  }
-
-  const handleChannelUpdate = () => {
-    // Refresh servers to get updated channel list
-    refreshServers()
-  }
-
   return (
-    <div className="w-64 bg-card border-r border-border flex flex-col h-full">
+    <div className="w-64 bg-discord-sidebar flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Servers</h2>
-          <Button
-            variant="ghost"
-            size="sm"
+          <h1 className="text-xl font-bold text-discord-text">CrestChat</h1>
+          <button
             onClick={refreshServers}
-            className="h-6 w-6 p-0"
-            title="Refresh servers"
+            className="p-2 hover:bg-discord-channel rounded-md transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-discord-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* Server List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
-        {/* Home Server */}
-        <Button
-          variant="ghost"
-          className={`w-full justify-start h-12 ${
-            !currentServer ? 'bg-primary text-primary-foreground' : ''
-          }`}
-          onClick={() => {
-            setCurrentServer(null)
-            setCurrentChannel(null)
-          }}
-        >
-          <MessageCircle className="w-5 h-5 mr-2" />
-          Home
-        </Button>
+      {/* User Info */}
+      <div className="p-4 border-b border-gray-700">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-full bg-discord-primary flex items-center justify-center text-white text-sm font-medium">
+            {user?.username?.charAt(0).toUpperCase() || 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-discord-text truncate">
+              {user?.display_name || user?.username || 'User'}
+            </p>
+            <p className="text-xs text-discord-muted truncate">
+              {user?.email}
+            </p>
+          </div>
+          <button
+            onClick={onSignOut}
+            className="p-1 hover:bg-discord-channel rounded transition-colors"
+            title="Sign Out"
+          >
+            <svg className="w-4 h-4 text-discord-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
-        {/* User's Servers and Public Servers */}
+      {/* Create Server Button */}
+      <div className="p-4">
+        <button
+          onClick={() => setShowCreateServer(true)}
+          className="w-full bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+        >
+          Create Server
+        </button>
+      </div>
+
+      {/* Servers List */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {servers.map((server) => (
-          <div key={server.id} className="space-y-1">
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                className={`flex-1 justify-start h-12 ${
-                  currentServer?.id === server.id ? 'bg-primary text-primary-foreground' : ''
-                }`}
-                onClick={() => {
-                  setCurrentServer(server)
-                  setCurrentChannel(server.channels[0] || null)
-                }}
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2">
-                  {server.name.charAt(0).toUpperCase()}
+          <div key={server.id} className="space-y-2">
+            {/* Server */}
+            <div
+              onClick={() => onServerSelect(server)}
+              className={`p-3 rounded-md cursor-pointer transition-colors ${
+                currentServer?.id === server.id
+                  ? 'bg-discord-channel text-discord-text'
+                  : 'hover:bg-discord-channel/50 text-discord-muted hover:text-discord-text'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-discord-primary flex items-center justify-center text-white text-sm font-medium">
+                    {server.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-medium">{server.name}</p>
+                    {!server.isMember && (
+                      <p className="text-xs text-discord-muted">(Public)</p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 text-left">
-                  {server.name}
-                  {!server.isMember && (
-                    <span className="text-xs text-muted-foreground ml-2">(Public)</span>
-                  )}
-                </div>
-              </Button>
-              
-              {/* Join button for public servers user isn't a member of */}
-              {!server.isMember && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-2 h-8 px-2"
-                  onClick={() => joinServer.mutate(server.id)}
-                  disabled={joinServer.isPending}
-                >
-                  Join
-                </Button>
-              )}
+                {!server.isMember && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleJoinServer(server)
+                    }}
+                    className="px-2 py-1 bg-discord-primary hover:bg-discord-primary/90 text-white text-xs rounded transition-colors"
+                  >
+                    Join
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Channels for current server */}
-            {currentServer?.id === server.id && (
-              <div className="ml-4 space-y-1">
-                {server.channels.map((channel: any) => (
-                  <Button
+            {/* Channels */}
+            {currentServer?.id === server.id && server.channels && (
+              <div className="ml-6 space-y-1">
+                {server.channels.map((channel) => (
+                  <div
                     key={channel.id}
-                    variant="ghost"
-                    size="sm"
-                    className={`w-full justify-start h-8 ${
-                      currentChannel?.id === channel.id ? 'bg-muted' : ''
+                    onClick={() => onChannelSelect(channel)}
+                    className={`px-3 py-2 rounded cursor-pointer transition-colors ${
+                      currentChannel?.id === channel.id
+                        ? 'bg-discord-channel text-discord-text'
+                        : 'hover:bg-discord-channel/50 text-discord-muted hover:text-discord-text'
                     }`}
-                    onClick={() => setCurrentChannel(channel)}
                   >
-                    {getChannelIcon(channel.type)}
-                    <span className="ml-2">{channel.name}</span>
-                  </Button>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-discord-muted">#</span>
+                      <span>{channel.name}</span>
+                    </div>
+                  </div>
                 ))}
                 
-                {/* Create Channel Button (only for members) */}
+                {/* Create Channel Button */}
                 {server.isMember && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start h-8 text-muted-foreground hover:text-foreground"
+                  <button
                     onClick={() => setShowCreateChannel(true)}
+                    className="w-full px-3 py-2 text-left text-discord-muted hover:text-discord-text hover:bg-discord-channel/50 rounded transition-colors"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Channel
-                  </Button>
-                )}
-
-                {/* Server Settings Button (only for owners) */}
-                {server.isMember && server.owner_id === user?.id && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start h-8 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowServerSettings(true)}
-                  >
-                    <Settings className="w-4 h-4 mr-2" />
-                    Server Settings
-                  </Button>
+                    + Create Channel
+                  </button>
                 )}
               </div>
             )}
           </div>
         ))}
-
-        {/* Create Server Button */}
-        <Button
-          variant="ghost"
-          className="w-full justify-start h-12 text-muted-foreground hover:text-foreground"
-          onClick={() => setShowCreateServer(true)}
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Create Server
-        </Button>
-      </div>
-
-      {/* User Section */}
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center space-x-2 mb-2">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-            {user?.email?.charAt(0).toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.email}</p>
-            <p className="text-xs text-muted-foreground">Online</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={signOut}
-            className="h-8 w-8"
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </div>
       </div>
 
       {/* Create Server Modal */}
       {showCreateServer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-background p-6 rounded-lg w-96 max-w-full mx-4">
-            <h2 className="text-lg font-semibold mb-4">Create a Server</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-discord-sidebar p-6 rounded-lg w-96">
+            <h3 className="text-lg font-semibold text-discord-text mb-4">Create Server</h3>
             <form onSubmit={handleCreateServer} className="space-y-4">
               <div>
-                <Label htmlFor="server-name">Server Name</Label>
-                <Input
-                  id="server-name"
-                  value={serverName}
-                  onChange={(e) => setServerName(e.target.value)}
+                <label className="block text-sm font-medium text-discord-text mb-2">
+                  Server Name
+                </label>
+                <input
+                  type="text"
+                  value={serverForm.name}
+                  onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
                   placeholder="Enter server name"
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="server-description">Description (Optional)</Label>
+                <label className="block text-sm font-medium text-discord-text mb-2">
+                  Description (optional)
+                </label>
                 <textarea
-                  id="server-description"
-                  value={serverDescription}
-                  onChange={(e) => setServerDescription(e.target.value)}
+                  value={serverForm.description}
+                  onChange={(e) => setServerForm({ ...serverForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
                   placeholder="Enter server description"
                   rows={3}
-                  className="w-full p-2 border rounded-md bg-background"
                 />
               </div>
               <div>
-                <Label htmlFor="server-privacy">Privacy Level</Label>
+                <label className="block text-sm font-medium text-discord-text mb-2">
+                  Privacy Level
+                </label>
                 <select
-                  id="server-privacy"
-                  value={serverPrivacy}
-                  onChange={(e) => setServerPrivacy(e.target.value as any)}
-                  className="w-full p-2 border rounded-md bg-background"
+                  value={serverForm.privacyLevel}
+                  onChange={(e) => setServerForm({ ...serverForm, privacyLevel: e.target.value })}
+                  className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
                 >
-                  <option value="public">Public - Anyone can join</option>
-                  <option value="invite_only">Invite Only - Requires invite link</option>
-                  <option value="private">Private - Only owner can add members</option>
+                  <option value="public">Public</option>
+                  <option value="private">Private</option>
+                  <option value="invite_only">Invite Only</option>
                 </select>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button
+              <div className="flex space-x-3">
+                <button
+                  type="submit"
+                  disabled={createServer.isPending}
+                  className="flex-1 bg-discord-primary hover:bg-discord-primary/90 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+                >
+                  {createServer.isPending ? 'Creating...' : 'Create Server'}
+                </button>
+                <button
                   type="button"
-                  variant="outline"
                   onClick={() => setShowCreateServer(false)}
+                  className="flex-1 bg-discord-channel hover:bg-discord-channel/80 text-discord-text font-medium py-2 px-4 rounded-md transition-colors duration-200"
                 >
                   Cancel
-                </Button>
-                <Button type="submit" disabled={createServer.isPending}>
-                  {createServer.isPending ? 'Creating...' : 'Create Server'}
-                </Button>
+                </button>
               </div>
             </form>
           </div>
@@ -309,58 +267,57 @@ export function ServerSidebar({
 
       {/* Create Channel Modal */}
       {showCreateChannel && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-background p-6 rounded-lg w-96 max-w-full mx-4">
-            <h2 className="text-lg font-semibold mb-4">Create a Channel</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-discord-sidebar p-6 rounded-lg w-96">
+            <h3 className="text-lg font-semibold text-discord-text mb-4">Create Channel</h3>
             <form onSubmit={handleCreateChannel} className="space-y-4">
               <div>
-                <Label htmlFor="channel-name">Channel Name</Label>
-                <Input
-                  id="channel-name"
-                  value={channelName}
-                  onChange={(e) => setChannelName(e.target.value)}
+                <label className="block text-sm font-medium text-discord-text mb-2">
+                  Channel Name
+                </label>
+                <input
+                  type="text"
+                  value={channelForm.name}
+                  onChange={(e) => setChannelForm({ ...channelForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
                   placeholder="Enter channel name"
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="channel-type">Channel Type</Label>
+                <label className="block text-sm font-medium text-discord-text mb-2">
+                  Channel Type
+                </label>
                 <select
-                  id="channel-type"
-                  value={channelType}
-                  onChange={(e) => setChannelType(e.target.value as any)}
-                  className="w-full p-2 border rounded-md bg-background"
+                  value={channelForm.type}
+                  onChange={(e) => setChannelForm({ ...channelForm, type: e.target.value })}
+                  className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
                 >
-                  <option value="text">Text Channel</option>
-                  <option value="voice">Voice Channel</option>
-                  <option value="announcement">Announcement Channel</option>
+                  <option value="text">Text</option>
+                  <option value="voice">Voice</option>
+                  <option value="announcement">Announcement</option>
                 </select>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button
+              <div className="flex space-x-3">
+                <button
+                  type="submit"
+                  disabled={createChannel.isPending}
+                  className="flex-1 bg-discord-primary hover:bg-discord-primary/90 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+                >
+                  {createChannel.isPending ? 'Creating...' : 'Create Channel'}
+                </button>
+                <button
                   type="button"
-                  variant="outline"
                   onClick={() => setShowCreateChannel(false)}
+                  className="flex-1 bg-discord-channel hover:bg-discord-channel/80 text-discord-text font-medium py-2 px-4 rounded-md transition-colors duration-200"
                 >
                   Cancel
-                </Button>
-                <Button type="submit" disabled={createChannel.isPending}>
-                  {createChannel.isPending ? 'Creating...' : 'Create Channel'}
-                </Button>
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* Server Settings Modal */}
-      <ServerSettingsModal
-        server={currentServer}
-        isOpen={showServerSettings}
-        onClose={() => setShowServerSettings(false)}
-        onServerUpdate={handleServerUpdate}
-        onChannelUpdate={handleChannelUpdate}
-      />
     </div>
   )
 }

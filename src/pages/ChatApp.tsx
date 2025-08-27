@@ -57,7 +57,6 @@ export default function ChatApp() {
       <div className="flex-1 flex flex-col">
         {currentServer && currentChannel ? (
           <ChatArea
-            server={currentServer}
             channel={currentChannel}
             onServerUpdate={() => {
               // Refresh servers when server is updated
