@@ -22,8 +22,13 @@ export function Auth() {
     const password = formData.get('password') as string
 
     try {
-      await signIn(email, password)
-      navigate('/app')
+      const { error } = await signIn(email, password)
+      if (error) {
+        console.error('Sign in error:', error)
+        alert(error.message)
+      } else {
+        navigate('/app')
+      }
     } catch (error) {
       console.error('Sign in error:', error)
     } finally {
@@ -38,11 +43,16 @@ export function Auth() {
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-    const username = formData.get('username') as string
 
     try {
-      await signUp(email, password, username)
-      navigate('/app')
+      const { error } = await signUp(email, password)
+      if (error) {
+        console.error('Sign up error:', error)
+        alert(error.message)
+      } else {
+        alert('Account created successfully! Please check your email to verify your account.')
+        navigate('/app')
+      }
     } catch (error) {
       console.error('Sign up error:', error)
     } finally {
@@ -112,17 +122,6 @@ export function Auth() {
 
               <TabsContent value="signup" className="mt-6">
                 <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username" className="text-white">Username</Label>
-                    <Input
-                      id="username"
-                      name="username"
-                      type="text"
-                      placeholder="Choose a username"
-                      required
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                    />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email" className="text-white">Email</Label>
                     <Input
