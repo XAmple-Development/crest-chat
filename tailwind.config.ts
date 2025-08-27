@@ -24,6 +24,17 @@ const config = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        // Discord-like palette used in components
+        'discord-bg': '#36393f',
+        'discord-sidebar': '#2f3136',
+        'discord-channel': '#40444b',
+        'discord-text': '#dcddde',
+        'discord-muted': '#72767d',
+        'discord-primary': '#5865f2',
+        'discord-border': '#202225',
+        'discord-hover': '#3a3e45',
+        'discord-active': '#2b2f35',
+        'discord-input': '#202225',
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
