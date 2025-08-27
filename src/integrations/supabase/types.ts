@@ -87,11 +87,14 @@ export type Database = {
           description: string | null
           icon_url: string | null
           banner_url: string | null
+          owner_id: string | null
           is_public: boolean
           is_verified: boolean
           max_members: number
           boost_level: number
           boost_count: number
+          privacy_level: string
+          invite_code: string | null
           default_channel_id: string | null
           system_channel_id: string | null
           rules_channel_id: string | null
@@ -110,11 +113,14 @@ export type Database = {
           description?: string | null
           icon_url?: string | null
           banner_url?: string | null
+          owner_id?: string | null
           is_public?: boolean
           is_verified?: boolean
           max_members?: number
           boost_level?: number
           boost_count?: number
+          privacy_level?: string
+          invite_code?: string | null
           default_channel_id?: string | null
           system_channel_id?: string | null
           rules_channel_id?: string | null
@@ -133,11 +139,14 @@ export type Database = {
           description?: string | null
           icon_url?: string | null
           banner_url?: string | null
+          owner_id?: string | null
           is_public?: boolean
           is_verified?: boolean
           max_members?: number
           boost_level?: number
           boost_count?: number
+          privacy_level?: string
+          invite_code?: string | null
           default_channel_id?: string | null
           system_channel_id?: string | null
           rules_channel_id?: string | null

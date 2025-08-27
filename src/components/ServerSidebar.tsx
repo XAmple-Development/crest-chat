@@ -1,10 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MessageCircle, Plus, Hash, Volume2, Megaphone, LogOut } from 'lucide-react'
 import { useServers } from '@/hooks/useServers'
 import { useAuth } from '@/hooks/useAuth'
@@ -25,8 +22,8 @@ export function ServerSidebar({
 }: ServerSidebarProps) {
   const { user, signOut } = useAuth()
   const { servers, createServer, createChannel, joinServer, refreshServers } = useServers()
-  const [isCreateServerOpen, setIsCreateServerOpen] = useState(false)
-  const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
+  const [showCreateServer, setShowCreateServer] = useState(false)
+  const [showCreateChannel, setShowCreateChannel] = useState(false)
   const [serverName, setServerName] = useState('')
   const [serverDescription, setServerDescription] = useState('')
   const [serverPrivacy, setServerPrivacy] = useState<'public' | 'private' | 'invite_only'>('public')
@@ -35,6 +32,7 @@ export function ServerSidebar({
 
   const handleCreateServer = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    console.log('Creating server:', { serverName, serverDescription, serverPrivacy })
     if (!serverName.trim()) return
 
     try {
@@ -46,7 +44,7 @@ export function ServerSidebar({
       setServerName('')
       setServerDescription('')
       setServerPrivacy('public')
-      setIsCreateServerOpen(false)
+      setShowCreateServer(false)
     } catch (error) {
       console.error('Failed to create server:', error)
     }
@@ -54,6 +52,7 @@ export function ServerSidebar({
 
   const handleCreateChannel = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    console.log('Creating channel:', { channelName, channelType, currentServer })
     if (!channelName.trim() || !currentServer) return
 
     try {
@@ -64,7 +63,7 @@ export function ServerSidebar({
       })
       setChannelName('')
       setChannelType('text')
-      setIsCreateChannelOpen(false)
+      setShowCreateChannel(false)
     } catch (error) {
       console.error('Failed to create channel:', error)
     }
@@ -183,7 +182,7 @@ export function ServerSidebar({
                     variant="ghost"
                     size="sm"
                     className="w-full justify-start h-8 text-muted-foreground hover:text-foreground"
-                    onClick={() => setIsCreateChannelOpen(true)}
+                    onClick={() => setShowCreateChannel(true)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Channel
@@ -198,7 +197,7 @@ export function ServerSidebar({
         <Button
           variant="ghost"
           className="w-full justify-start h-12 text-muted-foreground hover:text-foreground"
-          onClick={() => setIsCreateServerOpen(true)}
+          onClick={() => setShowCreateServer(true)}
         >
           <Plus className="w-5 h-5 mr-2" />
           Create Server
@@ -226,107 +225,108 @@ export function ServerSidebar({
         </div>
       </div>
 
-      {/* Create Server Dialog */}
-      <Dialog open={isCreateServerOpen} onOpenChange={setIsCreateServerOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create a Server</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateServer} className="space-y-4">
-            <div>
-              <Label htmlFor="server-name">Server Name</Label>
-              <Input
-                id="server-name"
-                value={serverName}
-                onChange={(e) => setServerName(e.target.value)}
-                placeholder="Enter server name"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="server-description">Description (Optional)</Label>
-              <Textarea
-                id="server-description"
-                value={serverDescription}
-                onChange={(e) => setServerDescription(e.target.value)}
-                placeholder="Enter server description"
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label htmlFor="server-privacy">Privacy Level</Label>
-              <Select value={serverPrivacy} onValueChange={(value: any) => setServerPrivacy(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">Public - Anyone can join</SelectItem>
-                  <SelectItem value="invite_only">Invite Only - Requires invite link</SelectItem>
-                  <SelectItem value="private">Private - Only owner can add members</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateServerOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createServer.isPending}>
-                {createServer.isPending ? 'Creating...' : 'Create Server'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Create Server Modal */}
+      {showCreateServer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-background p-6 rounded-lg w-96 max-w-full mx-4">
+            <h2 className="text-lg font-semibold mb-4">Create a Server</h2>
+            <form onSubmit={handleCreateServer} className="space-y-4">
+              <div>
+                <Label htmlFor="server-name">Server Name</Label>
+                <Input
+                  id="server-name"
+                  value={serverName}
+                  onChange={(e) => setServerName(e.target.value)}
+                  placeholder="Enter server name"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="server-description">Description (Optional)</Label>
+                <textarea
+                  id="server-description"
+                  value={serverDescription}
+                  onChange={(e) => setServerDescription(e.target.value)}
+                  placeholder="Enter server description"
+                  rows={3}
+                  className="w-full p-2 border rounded-md bg-background"
+                />
+              </div>
+              <div>
+                <Label htmlFor="server-privacy">Privacy Level</Label>
+                <select
+                  id="server-privacy"
+                  value={serverPrivacy}
+                  onChange={(e) => setServerPrivacy(e.target.value as any)}
+                  className="w-full p-2 border rounded-md bg-background"
+                >
+                  <option value="public">Public - Anyone can join</option>
+                  <option value="invite_only">Invite Only - Requires invite link</option>
+                  <option value="private">Private - Only owner can add members</option>
+                </select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateServer(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createServer.isPending}>
+                  {createServer.isPending ? 'Creating...' : 'Create Server'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-      {/* Create Channel Dialog */}
-      <Dialog open={isCreateChannelOpen} onOpenChange={setIsCreateChannelOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create a Channel</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateChannel} className="space-y-4">
-            <div>
-              <Label htmlFor="channel-name">Channel Name</Label>
-              <Input
-                id="channel-name"
-                value={channelName}
-                onChange={(e) => setChannelName(e.target.value)}
-                placeholder="Enter channel name"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="channel-type">Channel Type</Label>
-              <Select value={channelType} onValueChange={(value: any) => setChannelType(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="text">Text Channel</SelectItem>
-                  <SelectItem value="voice">Voice Channel</SelectItem>
-                  <SelectItem value="announcement">Announcement Channel</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateChannelOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createChannel.isPending}>
-                {createChannel.isPending ? 'Creating...' : 'Create Channel'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Create Channel Modal */}
+      {showCreateChannel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-background p-6 rounded-lg w-96 max-w-full mx-4">
+            <h2 className="text-lg font-semibold mb-4">Create a Channel</h2>
+            <form onSubmit={handleCreateChannel} className="space-y-4">
+              <div>
+                <Label htmlFor="channel-name">Channel Name</Label>
+                <Input
+                  id="channel-name"
+                  value={channelName}
+                  onChange={(e) => setChannelName(e.target.value)}
+                  placeholder="Enter channel name"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="channel-type">Channel Type</Label>
+                <select
+                  id="channel-type"
+                  value={channelType}
+                  onChange={(e) => setChannelType(e.target.value as any)}
+                  className="w-full p-2 border rounded-md bg-background"
+                >
+                  <option value="text">Text Channel</option>
+                  <option value="voice">Voice Channel</option>
+                  <option value="announcement">Announcement Channel</option>
+                </select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateChannel(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createChannel.isPending}>
+                  {createChannel.isPending ? 'Creating...' : 'Create Channel'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
