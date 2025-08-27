@@ -88,7 +88,7 @@ export function ServerSettingsModal({
         .from('server_members')
         .select(`
           user_id,
-          profiles (
+          user:profiles!server_members_user_id_fkey (
             id,
             username,
             display_name,
@@ -444,14 +444,14 @@ export function ServerSettingsModal({
                     <div key={member.user_id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                          {member.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                          {member.user?.username?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div>
                           <p className="font-medium">
-                            {member.profiles?.display_name || member.profiles?.username || 'Unknown User'}
+                            {member.user?.display_name || member.user?.username || 'Unknown User'}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {member.profiles?.username}
+                            {member.user?.username}
                           </p>
                         </div>
                       </div>
@@ -459,7 +459,7 @@ export function ServerSettingsModal({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleRemoveMember(member.user_id, member.profiles?.username || 'User')}
+                          onClick={() => handleRemoveMember(member.user_id, member.user?.username || 'User')}
                           className="text-destructive hover:text-destructive"
                         >
                           Remove

@@ -136,16 +136,16 @@ export function ChatArea({ currentChannel, currentServer }: ChatAreaProps) {
           messages.map((message) => (
             <div key={message.id} className="flex space-x-3 group">
               {/* User Avatar */}
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium">
-                {message.profiles?.username?.charAt(0).toUpperCase() || 'U'}
-              </div>
+                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium">
+                  {message.author?.username?.charAt(0).toUpperCase() || 'U'}
+                </div>
 
               {/* Message Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-medium text-sm">
-                    {message.profiles?.display_name || message.profiles?.username || 'Unknown User'}
-                  </span>
+                                      <span className="font-medium text-sm">
+                      {message.author?.display_name || message.author?.username || 'Unknown User'}
+                    </span>
                   <span className="text-xs text-muted-foreground">
                     {formatTime(message.created_at)}
                   </span>

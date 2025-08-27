@@ -20,7 +20,7 @@ export function useMessages(channelId: string | null) {
         .from('messages')
         .select(`
           *,
-          profiles (
+          author:profiles!messages_author_id_fkey (
             id,
             username,
             display_name,
@@ -68,7 +68,7 @@ export function useMessages(channelId: string | null) {
         })
         .select(`
           *,
-          profiles (
+          author:profiles!messages_author_id_fkey (
             id,
             username,
             display_name,
