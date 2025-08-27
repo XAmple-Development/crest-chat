@@ -57,9 +57,9 @@ export interface Message {
   mentions_everyone: boolean
   mention_roles?: string[]
   mention_users?: string[]
-  embeds?: any
-  attachments?: any
-  reactions?: any
+  embeds?: Record<string, unknown>
+  attachments?: Record<string, unknown>
+  reactions?: Record<string, unknown>
   flags: number
   created_at: string
   updated_at: string

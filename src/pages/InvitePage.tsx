@@ -4,22 +4,27 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { MessageCircle, Users, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { Server } from '@/integrations/supabase/types'
 
 export function InvitePage() {
   const { inviteCode } = useParams<{ inviteCode: string }>()
   const { user, loading } = useAuth()
   const navigate = useNavigate()
-  const [serverInfo, setServerInfo] = useState<any>(null)
+  const [serverInfo, setServerInfo] = useState<Server | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (inviteCode) {
       // TODO: Fetch server info from invite code
       setServerInfo({
+        id: 'temp-id',
         name: 'Sample Server',
-        memberCount: 42,
-        description: 'A sample server for testing invites'
-      })
+        description: 'A sample server for testing invites',
+        owner_id: 'temp-owner',
+        privacy_level: 'public',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      } as Server)
       setIsLoading(false)
     }
   }, [inviteCode])
@@ -78,7 +83,7 @@ export function InvitePage() {
                   <h3 className="text-white font-semibold">{serverInfo?.name || 'Unknown Server'}</h3>
                   <div className="flex items-center space-x-1 text-gray-300 text-sm">
                     <Users className="w-4 h-4" />
-                    <span>{serverInfo?.memberCount || 0} members</span>
+                    <span>0 members</span>
                   </div>
                 </div>
               </div>

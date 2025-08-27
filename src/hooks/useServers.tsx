@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
+import { Server } from '@/integrations/supabase/types'
 
 export function useServers() {
   const queryClient = useQueryClient()
@@ -54,10 +55,10 @@ export function useServers() {
 
   // Combine servers and add isMember flag
   const allServers = [
-    ...userServers.map((server: any) => ({ ...server, isMember: true })),
+    ...userServers.map((server: Server) => ({ ...server, isMember: true })),
     ...publicServers
-      .filter((publicServer: any) => !userServers.find((userServer: any) => userServer.id === publicServer.id))
-      .map((server: any) => ({ ...server, isMember: false }))
+      .filter((publicServer: Server) => !userServers.find((userServer: Server) => userServer.id === publicServer.id))
+      .map((server: Server) => ({ ...server, isMember: false }))
   ]
 
   // Create server mutation
@@ -106,8 +107,8 @@ export function useServers() {
       queryClient.invalidateQueries({ queryKey: ['public-servers'] })
       toast.success('Server created successfully!')
     },
-    onError: (error: any) => {
-      toast.error(`Failed to create server: ${error.message}`)
+    onError: (error) => {
+      toast.error(`Failed to create server: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   })
 
@@ -132,8 +133,8 @@ export function useServers() {
       queryClient.invalidateQueries({ queryKey: ['public-servers'] })
       toast.success('Channel created successfully!')
     },
-    onError: (error: any) => {
-      toast.error(`Failed to create channel: ${error.message}`)
+    onError: (error) => {
+      toast.error(`Failed to create channel: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   })
 
@@ -155,8 +156,8 @@ export function useServers() {
       queryClient.invalidateQueries({ queryKey: ['public-servers'] })
       toast.success('Joined server successfully!')
     },
-    onError: (error: any) => {
-      toast.error(`Failed to join server: ${error.message}`)
+    onError: (error) => {
+      toast.error(`Failed to join server: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   })
 

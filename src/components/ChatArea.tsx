@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { useMessages } from '../hooks/useMessages'
-import { Channel } from '../integrations/supabase/types'
+import { Channel, Server, Message } from '../integrations/supabase/types'
 import { toast } from 'sonner'
 
 interface ChatAreaProps {
   channel: Channel
-  server?: any
+  server?: Server
   onServerUpdate: () => void
   onChannelUpdate: () => void
   onOpenServerSettings?: () => void
@@ -90,7 +90,7 @@ export default function ChatArea({ channel, server, onOpenServerSettings }: Chat
     }
   }
 
-  const startEditing = (message: any) => {
+  const startEditing = (message: Message) => {
     setEditingMessageId(message.id)
     setEditContent(message.content)
   }

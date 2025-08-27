@@ -79,8 +79,8 @@ export function useMessages(channelId: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
     },
-    onError: (error: any) => {
-      toast.error(`Failed to send message: ${error.message}`)
+    onError: (error) => {
+      toast.error(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   })
 
@@ -105,8 +105,8 @@ export function useMessages(channelId: string | null) {
       queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
       toast.success('Message edited successfully!')
     },
-    onError: (error: any) => {
-      toast.error(`Failed to edit message: ${error.message}`)
+    onError: (error) => {
+      toast.error(`Failed to edit message: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   })
 
@@ -128,8 +128,8 @@ export function useMessages(channelId: string | null) {
       queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
       toast.success('Message deleted successfully!')
     },
-    onError: (error: any) => {
-      toast.error(`Failed to delete message: ${error.message}`)
+    onError: (error) => {
+      toast.error(`Failed to delete message: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   })
 

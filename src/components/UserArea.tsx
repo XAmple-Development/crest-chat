@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import OnlineUsers from './OnlineUsers'
 import { supabase } from '../integrations/supabase/client'
 import { toast } from 'sonner'
+import { Server } from '../integrations/supabase/types'
 
 interface UserAreaProps {
-  server?: any
+  server?: Server
 }
 
 interface UserSettings {
@@ -30,13 +31,7 @@ export default function UserArea({ server }: UserAreaProps) {
   })
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (user) {
-      loadUserSettings()
-    }
-  }, [user])
-
-  const loadUserSettings = async () => {
+  const loadUserSettings = useCallback(async () => {
     if (!user) return
     try {
       const { data, error } = await supabase
@@ -73,7 +68,13 @@ export default function UserArea({ server }: UserAreaProps) {
     } catch (error) {
       console.error('Error loading user settings:', error)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      loadUserSettings()
+    }
+  }, [user, loadUserSettings])
 
   const updateUserStatus = async (status: string) => {
     if (!user) return
@@ -95,8 +96,8 @@ export default function UserArea({ server }: UserAreaProps) {
       setUserSettings(prev => ({ ...prev, status }))
       setShowStatusMenu(false)
       toast.success('Status updated successfully!')
-    } catch (error: any) {
-      toast.error(`Failed to update status: ${error.message}`)
+    } catch (error) {
+      toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -121,8 +122,8 @@ export default function UserArea({ server }: UserAreaProps) {
 
       setShowSettings(false)
       toast.success('Settings saved successfully!')
-    } catch (error: any) {
-      toast.error(`Failed to save settings: ${error.message}`)
+    } catch (error) {
+      toast.error(`Failed to save settings: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -154,7 +155,7 @@ export default function UserArea({ server }: UserAreaProps) {
     <div className="flex flex-col h-full">
       {/* Online Users */}
       <div className="flex-1 overflow-y-auto">
-        <OnlineUsers server={server} />
+        <OnlineUsers server={server || null} />
       </div>
 
       {/* User Info Bar */}

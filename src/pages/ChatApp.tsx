@@ -52,7 +52,7 @@ export default function ChatApp() {
         currentChannel={currentChannel}
         onServerSelect={handleServerSelect}
         onChannelSelect={handleChannelSelect}
-        user={user}
+        user={user!}
       />
 
       {/* Chat Area */}
@@ -88,7 +88,7 @@ export default function ChatApp() {
 
       {/* User Area */}
       <div className="w-64 bg-discord-sidebar border-l border-gray-700 p-4">
-        <UserArea server={currentServer} />
+        <UserArea server={currentServer || undefined} />
       </div>
 
       {/* Server Settings Modal */}

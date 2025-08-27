@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../integrations/supabase/client'
-import { Server, Channel } from '../integrations/supabase/types'
+import { Server, Channel, ServerMember } from '../integrations/supabase/types'
 import { toast } from 'sonner'
 
 interface ServerSettingsModalProps {
@@ -21,7 +21,7 @@ export default function ServerSettingsModal({
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(false)
   const [channels, setChannels] = useState<Channel[]>([])
-  const [members, setMembers] = useState<any[]>([])
+  const [members, setMembers] = useState<ServerMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [serverForm, setServerForm] = useState({
     name: '',
@@ -30,19 +30,7 @@ export default function ServerSettingsModal({
   })
   const [newChannelName, setNewChannelName] = useState('')
 
-  useEffect(() => {
-    if (server && isOpen) {
-      setServerForm({
-        name: server.name,
-        description: server.description || '',
-        privacyLevel: server.privacy_level
-      })
-      loadChannels()
-      loadMembers()
-    }
-  }, [server, isOpen])
-
-  const loadChannels = async () => {
+  const loadChannels = useCallback(async () => {
     if (!server) return
     try {
       const { data, error } = await supabase
@@ -57,9 +45,9 @@ export default function ServerSettingsModal({
       console.error('Error loading channels:', error)
       toast.error('Failed to load channels')
     }
-  }
+  }, [server])
 
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     if (!server) return
     setLoadingMembers(true)
     try {
@@ -85,14 +73,34 @@ export default function ServerSettingsModal({
       }
 
       console.log('Members loaded successfully:', data)
-      setMembers(data || [])
+      const formattedMembers: ServerMember[] = (data || []).map((item: any) => ({
+        id: item.user_id,
+        server_id: server.id,
+        user_id: item.user_id,
+        role: 'member',
+        joined_at: new Date().toISOString(),
+        user: Array.isArray(item.user) ? item.user[0] : item.user
+      }))
+      setMembers(formattedMembers)
     } catch (error) {
       console.error('Error loading members:', error)
       toast.error('Failed to load members')
     } finally {
       setLoadingMembers(false)
     }
-  }
+  }, [server])
+
+  useEffect(() => {
+    if (server && isOpen) {
+      setServerForm({
+        name: server.name,
+        description: server.description || '',
+        privacyLevel: server.privacy_level
+      })
+      loadChannels()
+      loadMembers()
+    }
+  }, [server, isOpen, loadChannels, loadMembers])
 
   const handleSaveServer = async () => {
     if (!server) return
@@ -110,8 +118,8 @@ export default function ServerSettingsModal({
       if (error) throw error
       toast.success('Server updated successfully!')
       onServerUpdate()
-    } catch (error: any) {
-      toast.error(`Failed to update server: ${error.message}`)
+    } catch (error) {
+      toast.error(`Failed to update server: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -133,8 +141,8 @@ export default function ServerSettingsModal({
       setNewChannelName('')
       loadChannels()
       onChannelUpdate()
-    } catch (error: any) {
-      toast.error(`Failed to create channel: ${error.message}`)
+    } catch (error) {
+      toast.error(`Failed to create channel: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -150,8 +158,8 @@ export default function ServerSettingsModal({
       toast.success('Channel deleted successfully!')
       loadChannels()
       onChannelUpdate()
-    } catch (error: any) {
-      toast.error(`Failed to delete channel: ${error.message}`)
+    } catch (error) {
+      toast.error(`Failed to delete channel: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -167,8 +175,8 @@ export default function ServerSettingsModal({
       if (error) throw error
       toast.success('Member removed successfully!')
       loadMembers()
-    } catch (error: any) {
-      toast.error(`Failed to remove member: ${error.message}`)
+    } catch (error) {
+      toast.error(`Failed to remove member: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 

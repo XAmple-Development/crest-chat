@@ -3,13 +3,23 @@ import { Server, Channel } from '../integrations/supabase/types'
 import { supabase } from '../integrations/supabase/client'
 import { toast } from 'sonner'
 
+interface AuthUser {
+  id: string
+  email: string
+  username: string
+  display_name: string
+  avatar_url?: string
+  status: string
+  created_at: string
+}
+
 interface ServerSidebarProps {
   servers: Server[]
   currentServer: Server | null
   currentChannel: Channel | null
   onServerSelect: (server: Server) => void
   onChannelSelect: (channel: Channel) => void
-  user: any
+  user: AuthUser
 }
 
 export default function ServerSidebar({
@@ -100,9 +110,9 @@ export default function ServerSidebar({
       
       // Refresh the page to show new server
       window.location.reload()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Full error:', error)
-      toast.error(`Failed to create server: ${error.message}`)
+      toast.error(`Failed to create server: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -132,8 +142,8 @@ export default function ServerSidebar({
       
       // Refresh the page to show new channel
       window.location.reload()
-    } catch (error: any) {
-      toast.error(`Failed to create channel: ${error.message}`)
+    } catch (error) {
+      toast.error(`Failed to create channel: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -159,8 +169,8 @@ export default function ServerSidebar({
       
       // Refresh the page to show new server
       window.location.reload()
-    } catch (error: any) {
-      toast.error(`Failed to join server: ${error.message}`)
+    } catch (error) {
+      toast.error(`Failed to join server: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -181,7 +191,7 @@ export default function ServerSidebar({
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {/* Home Button */}
         <button
-          onClick={() => onServerSelect(null as any)}
+          onClick={() => onServerSelect(null as unknown as Server)}
           className={`w-full p-3 rounded-lg transition-colors ${
             !currentServer 
               ? 'bg-discord-primary text-white' 

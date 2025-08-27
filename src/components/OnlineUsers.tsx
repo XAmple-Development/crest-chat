@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../integrations/supabase/client'
 import { Server } from '../integrations/supabase/types'
 
@@ -18,13 +18,7 @@ export default function OnlineUsers({ server }: OnlineUsersProps) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (server) {
-      loadOnlineUsers()
-    }
-  }, [server])
-
-  const loadOnlineUsers = async () => {
+  const loadOnlineUsers = useCallback(async () => {
     if (!server) return
     setLoading(true)
     try {
@@ -46,8 +40,9 @@ export default function OnlineUsers({ server }: OnlineUsersProps) {
 
       const users = data
         ?.map(item => item.user)
-        .filter((user: any) => user && user.status !== 'offline')
-        .sort((a: any, b: any) => {
+        .flat()
+        .filter((user) => user && user.status !== 'offline')
+        .sort((a, b) => {
           // Sort by status priority: online > idle > dnd > invisible
           const statusOrder = { online: 0, idle: 1, dnd: 2, invisible: 3 }
           return statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
@@ -59,7 +54,13 @@ export default function OnlineUsers({ server }: OnlineUsersProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [server])
+
+  useEffect(() => {
+    if (server) {
+      loadOnlineUsers()
+    }
+  }, [server, loadOnlineUsers])
 
   const getStatusColor = (status: string) => {
     switch (status) {

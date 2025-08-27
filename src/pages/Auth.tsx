@@ -27,8 +27,8 @@ export default function Auth() {
       } else if (isSignUp) {
         toast.success('Account created! Please check your email to verify your account.')
       }
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
