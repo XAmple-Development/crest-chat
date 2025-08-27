@@ -7,8 +7,8 @@ interface ServerSidebarProps {
   servers: Server[]
   currentServer: Server | null
   currentChannel: Channel | null
-  onServerSelect: (server: Server) => void
-  onChannelSelect: (channel: Channel) => void
+  onServerSelect: (_server: Server) => void
+  onChannelSelect: (_channel: Channel) => void
   user: any
 }
 

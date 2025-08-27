@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
+import { logger } from '@/lib/logger'
 
 interface AuthUser {
   id: string
@@ -17,11 +18,11 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    console.log('Setting up auth listener...')
+    logger.log('Setting up auth listener...')
     
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.email)
+      logger.log('Initial session:', session?.user?.email)
       if (session?.user) {
         loadUserData(session.user)
       }
@@ -31,7 +32,7 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', { event, userId: session?.user?.id, email: session?.user?.email })
+        logger.log('Auth state change:', { event, userId: session?.user?.id, email: session?.user?.email })
         if (event === 'SIGNED_IN' && session?.user) {
           await loadUserData(session.user)
         } else if (event === 'SIGNED_OUT') {
@@ -45,7 +46,7 @@ export function useAuth() {
   }, [])
 
   const loadUserData = async (authUser: User) => {
-    console.log('Loading user data for:', authUser.email)
+    logger.log('Loading user data for:', authUser.email)
     try {
       // First try to get from profiles table
       const { data: profile, error: profileError } = await supabase
@@ -54,11 +55,11 @@ export function useAuth() {
         .eq('id', authUser.id)
         .single()
 
-      console.log('Profile query result:', { profile, error: profileError })
+      logger.log('Profile query result:', { profile, error: profileError })
 
       if (profile && !profileError) {
         // Profile exists, use it
-        console.log('Using existing profile:', profile.username)
+        logger.log('Using existing profile:', profile.username)
         setUser({
           id: profile.id,
           email: authUser.email || '',
@@ -72,7 +73,7 @@ export function useAuth() {
       }
 
       // Profile doesn't exist, create one
-      console.log('Profile not found, creating one...')
+      logger.log('Profile not found, creating one...')
       const username = authUser.email?.split('@')[0] || 'user'
       const cleanUsername = username.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase()
 
@@ -101,7 +102,7 @@ export function useAuth() {
         })
       } else {
         // Fallback: use auth user data directly
-        console.warn('Failed to create profile, using auth data:', createError)
+        logger.warn('Failed to create profile, using auth data:', createError)
         setUser({
           id: authUser.id,
           email: authUser.email || '',
@@ -113,7 +114,7 @@ export function useAuth() {
         })
       }
     } catch (error) {
-      console.error('Error loading user data:', error)
+      logger.error('Error loading user data:', error)
       // Fallback: use auth user data directly
       setUser({
         id: authUser.id,

@@ -100,7 +100,7 @@ export default function ChatArea({ channel, server, onOpenServerSettings }: Chat
     setEditContent('')
   }
 
-  const addReaction = (_messageId: string, _emoji: string) => {
+  const addReaction = () => {
     // TODO: Implement reaction system
     toast.info('Reactions coming soon!')
   }
@@ -205,7 +205,7 @@ export default function ChatArea({ channel, server, onOpenServerSettings }: Chat
                     {/* Message Actions */}
                     <div className="flex items-center space-x-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => addReaction(message.id, '👍')}
+                        onClick={() => addReaction()}
                         className="p-1 hover:bg-discord-channel rounded text-discord-muted hover:text-discord-text transition-colors"
                         title="Add reaction"
                       >

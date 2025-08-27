@@ -114,7 +114,7 @@ export interface Database {
       }
     }
     Views: {
-      [_ in never]: never
+      [_key in never]: never
     }
     Functions: {
       join_server_by_invite: {
