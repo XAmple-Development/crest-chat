@@ -91,9 +91,15 @@ export function useServers() {
       if (!user) throw new Error('User not authenticated')
 
       try {
-        // Generate invite code for the server
-        const { data: inviteCodeData } = await supabase.rpc('generate_invite_code')
-        const inviteCode = inviteCodeData || Math.random().toString(36).substring(2, 10).toUpperCase()
+        // Generate invite code for the server (fallback if RPC doesn't exist)
+        let inviteCode: string
+        try {
+          const { data: inviteCodeData } = await supabase.rpc('generate_invite_code')
+          inviteCode = inviteCodeData || Math.random().toString(36).substring(2, 10).toUpperCase()
+        } catch (rpcError) {
+          console.warn('RPC function not available, using fallback:', rpcError)
+          inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase()
+        }
 
         // Create server
         const { data: server, error: serverError } = await supabase

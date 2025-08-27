@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { MessageCircle, Plus, Hash, Volume2, Megaphone, LogOut } from 'lucide-react'
+import { MessageCircle, Plus, Hash, Volume2, Megaphone, LogOut, Settings } from 'lucide-react'
 import { useServers } from '@/hooks/useServers'
 import { useAuth } from '@/hooks/useAuth'
 import { Server, Channel } from '@/integrations/supabase/types'
+import { ServerSettingsModal } from './ServerSettingsModal'
 
 interface ServerSidebarProps {
   currentServer: Server | null
@@ -24,6 +25,7 @@ export function ServerSidebar({
   const { servers, createServer, createChannel, joinServer, refreshServers } = useServers()
   const [showCreateServer, setShowCreateServer] = useState(false)
   const [showCreateChannel, setShowCreateChannel] = useState(false)
+  const [showServerSettings, setShowServerSettings] = useState(false)
   const [serverName, setServerName] = useState('')
   const [serverDescription, setServerDescription] = useState('')
   const [serverPrivacy, setServerPrivacy] = useState<'public' | 'private' | 'invite_only'>('public')
@@ -80,6 +82,16 @@ export function ServerSidebar({
       default:
         return <Hash className="w-4 h-4" />
     }
+  }
+
+  const handleServerUpdate = (_updatedServer: Server) => {
+    // This will trigger a refresh of the servers list
+    refreshServers()
+  }
+
+  const handleChannelUpdate = () => {
+    // Refresh servers to get updated channel list
+    refreshServers()
   }
 
   return (
@@ -186,6 +198,19 @@ export function ServerSidebar({
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Channel
+                  </Button>
+                )}
+
+                {/* Server Settings Button (only for owners) */}
+                {server.isMember && server.owner_id === user?.id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowServerSettings(true)}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Server Settings
                   </Button>
                 )}
               </div>
@@ -327,6 +352,15 @@ export function ServerSidebar({
           </div>
         </div>
       )}
+
+      {/* Server Settings Modal */}
+      <ServerSettingsModal
+        server={currentServer}
+        isOpen={showServerSettings}
+        onClose={() => setShowServerSettings(false)}
+        onServerUpdate={handleServerUpdate}
+        onChannelUpdate={handleChannelUpdate}
+      />
     </div>
   )
 }

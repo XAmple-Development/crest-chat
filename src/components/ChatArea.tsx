@@ -1,23 +1,25 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Hash, Send, Edit, Trash2 } from 'lucide-react'
+import { Hash, Send, Edit, Trash2, Settings } from 'lucide-react'
 import { useMessages } from '@/hooks/useMessages'
 import { useAuth } from '@/hooks/useAuth'
-import { Channel } from '@/integrations/supabase/types'
+import { Channel, Server } from '@/integrations/supabase/types'
 import { formatTime } from '@/lib/utils'
+import { ServerSettingsModal } from './ServerSettingsModal'
 
 interface ChatAreaProps {
   currentChannel: Channel | null
-  currentServer: any
+  currentServer: Server | null
 }
 
-export function ChatArea({ currentChannel }: ChatAreaProps) {
+export function ChatArea({ currentChannel, currentServer }: ChatAreaProps) {
   const { user } = useAuth()
   const { messages, sendMessage, editMessage, deleteMessage } = useMessages(currentChannel?.id || null)
   const [messageContent, setMessageContent] = useState('')
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
+  const [showServerSettings, setShowServerSettings] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -72,6 +74,16 @@ export function ChatArea({ currentChannel }: ChatAreaProps) {
     setEditContent('')
   }
 
+  const handleServerUpdate = (_updatedServer: Server) => {
+    // This will be handled by the parent component
+    window.location.reload() // Simple refresh for now
+  }
+
+  const handleChannelUpdate = () => {
+    // This will be handled by the parent component
+    window.location.reload() // Simple refresh for now
+  }
+
   if (!currentChannel) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -89,13 +101,28 @@ export function ChatArea({ currentChannel }: ChatAreaProps) {
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Channel Header */}
-      <div className="h-12 bg-card border-b border-border flex items-center px-4">
-        <Hash className="w-5 h-5 mr-2 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">{currentChannel.name}</h2>
-        {currentChannel.description && (
-          <span className="ml-2 text-sm text-muted-foreground">
-            - {currentChannel.description}
-          </span>
+      <div className="h-12 bg-card border-b border-border flex items-center justify-between px-4">
+        <div className="flex items-center">
+          <Hash className="w-5 h-5 mr-2 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">{currentChannel.name}</h2>
+          {currentChannel.description && (
+            <span className="ml-2 text-sm text-muted-foreground">
+              - {currentChannel.description}
+            </span>
+          )}
+        </div>
+        
+        {/* Server Settings Button (only for owners) */}
+        {currentServer && currentServer.owner_id === user?.id && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowServerSettings(true)}
+            className="h-8 w-8 p-0"
+            title="Server Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
         )}
       </div>
 
@@ -212,6 +239,15 @@ export function ChatArea({ currentChannel }: ChatAreaProps) {
           </Button>
         </form>
       </div>
+
+      {/* Server Settings Modal */}
+      <ServerSettingsModal
+        server={currentServer}
+        isOpen={showServerSettings}
+        onClose={() => setShowServerSettings(false)}
+        onServerUpdate={handleServerUpdate}
+        onChannelUpdate={handleChannelUpdate}
+      />
     </div>
   )
 }
