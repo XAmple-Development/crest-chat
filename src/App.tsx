@@ -1,17 +1,33 @@
 import { Routes, Route } from 'react-router-dom'
-import { WelcomeScreen } from '@/pages/WelcomeScreen'
-import { Auth } from '@/pages/Auth'
-import { ChatApp } from '@/pages/ChatApp'
-import { InvitePage } from '@/pages/InvitePage'
+import { useAuth } from './hooks/useAuth'
+import Auth from './pages/Auth'
+import ChatApp from './pages/ChatApp'
+import LoadingSpinner from './components/LoadingSpinner'
 
 function App() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
+
   return (
-    <Routes>
-      <Route path="/" element={<WelcomeScreen />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/app" element={<ChatApp />} />
-      <Route path="/invite/:inviteCode" element={<InvitePage />} />
-    </Routes>
+    <div className="min-h-screen bg-discord-bg">
+      <Routes>
+        <Route 
+          path="/" 
+          element={user ? <ChatApp /> : <Auth />} 
+        />
+        <Route 
+          path="/auth" 
+          element={user ? <ChatApp /> : <Auth />} 
+        />
+        <Route 
+          path="*" 
+          element={user ? <ChatApp /> : <Auth />} 
+        />
+      </Routes>
+    </div>
   )
 }
 

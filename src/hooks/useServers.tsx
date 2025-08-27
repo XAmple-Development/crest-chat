@@ -1,26 +1,16 @@
-import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
-import { toast } from 'sonner'
 import { Server, Channel } from '@/integrations/supabase/types'
-import { useAuth } from './useAuth'
+import { toast } from 'sonner'
 
 export function useServers() {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
-  const [currentServer, setCurrentServer] = useState<Server | null>(null)
-  const [currentChannel, setCurrentChannel] = useState<Channel | null>(null)
 
-  // Fetch user's servers and public servers
-  const { data: servers = [], isLoading: serversLoading } = useQuery({
-    queryKey: ['servers', user?.id],
+  // Fetch servers the user is a member of
+  const { data: userServers = [], isLoading: userServersLoading } = useQuery({
+    queryKey: ['user-servers'],
     queryFn: async () => {
-      if (!user) return []
-      
-      console.log('Fetching servers for user:', user.id)
-      
-      // Fetch servers the user is a member of
-      const { data: memberServers, error: memberError } = await supabase
+      const { data, error } = await supabase
         .from('server_members')
         .select(`
           server_id,
@@ -29,161 +19,108 @@ export function useServers() {
             channels (*)
           )
         `)
-        .eq('user_id', user.id)
 
-      if (memberError) {
-        console.error('Error fetching member servers:', memberError)
+      if (error) {
+        console.error('Error fetching user servers:', error)
+        return []
       }
 
-      // Fetch public servers the user is not a member of
-      const { data: publicServers, error: publicError } = await supabase
+      return data?.map((item: any) => ({
+        ...item.servers,
+        channels: item.servers.channels || []
+      })) || []
+    }
+  })
+
+  // Fetch public servers
+  const { data: publicServers = [], isLoading: publicServersLoading } = useQuery({
+    queryKey: ['public-servers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('servers')
         .select(`
           *,
           channels (*)
         `)
         .eq('privacy_level', 'public')
-        .not('id', 'in', `(${memberServers?.map(s => s.server_id).join(',') || '00000000-0000-0000-0000-000000000000'})`)
 
-      if (publicError) {
-        console.error('Error fetching public servers:', publicError)
+      if (error) {
+        console.error('Error fetching public servers:', error)
+        return []
       }
 
-      // Combine member servers and public servers
-      const memberServerList = memberServers?.map(item => {
-        const server = item.servers as unknown as Server
-        const channels = (item.servers as any).channels as Channel[] || []
-        return {
-          ...server,
-          channels,
-          isMember: true
-        }
-      }) || []
-
-      const publicServerList = publicServers?.map(server => {
-        const channels = (server as any).channels as Channel[] || []
-        return {
-          ...server,
-          channels,
-          isMember: false
-        }
-      }) || []
-
-      const allServers = [...memberServerList, ...publicServerList]
-      
-      console.log('All servers (members + public):', allServers)
-      return allServers
-    },
-    enabled: !!user
+      return data || []
+    }
   })
+
+  // Combine servers and add isMember flag
+  const allServers = [
+    ...userServers.map((server: any) => ({ ...server, isMember: true })),
+    ...publicServers
+      .filter((publicServer: any) => !userServers.find((userServer: any) => userServer.id === publicServer.id))
+      .map((server: any) => ({ ...server, isMember: false }))
+  ]
 
   // Create server mutation
   const createServer = useMutation({
-    mutationFn: async ({ 
-      name, 
-      description, 
-      privacyLevel = 'public' 
-    }: { 
-      name: string; 
-      description?: string; 
-      privacyLevel?: 'public' | 'private' | 'invite_only' 
-    }) => {
-      if (!user) throw new Error('User not authenticated')
+    mutationFn: async ({ name, description, privacyLevel }: { name: string; description?: string; privacyLevel: string }) => {
+      const { data: server, error: serverError } = await supabase
+        .from('servers')
+        .insert({
+          name,
+          description,
+          privacy_level: privacyLevel,
+          owner_id: (await supabase.auth.getUser()).data.user?.id
+        })
+        .select()
+        .single()
 
-      try {
-        // Generate invite code for the server (fallback if RPC doesn't exist)
-        let inviteCode: string
-        try {
-          const { data: inviteCodeData } = await supabase.rpc('generate_invite_code')
-          inviteCode = inviteCodeData || Math.random().toString(36).substring(2, 10).toUpperCase()
-        } catch (rpcError) {
-          console.warn('RPC function not available, using fallback:', rpcError)
-          inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase()
-        }
+      if (serverError) throw serverError
 
-        // Create server
-        const { data: server, error: serverError } = await supabase
-          .from('servers')
-          .insert({
-            name,
-            description,
-            owner_id: user.id,
-            privacy_level: privacyLevel,
-            invite_code: inviteCode,
-            is_public: privacyLevel === 'public'
-          })
-          .select()
-          .single()
+      // Create default channel
+      const { data: channel, error: channelError } = await supabase
+        .from('channels')
+        .insert({
+          name: 'general',
+          server_id: server.id,
+          type: 'text'
+        })
+        .select()
+        .single()
 
-        if (serverError) {
-          console.error('Server creation error:', serverError)
-          throw serverError
-        }
+      if (channelError) throw channelError
 
-        console.log('Server created:', server)
+      // Add user as member
+      const { error: memberError } = await supabase
+        .from('server_members')
+        .insert({
+          server_id: server.id,
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        })
 
-        // Create default channels
-        const defaultChannels = [
-          { name: 'general', type: 'text' as const, position: 0 },
-          { name: 'announcements', type: 'announcement' as const, position: 1 }
-        ]
+      if (memberError) throw memberError
 
-        for (const channelData of defaultChannels) {
-          const { error: channelError } = await supabase
-            .from('channels')
-            .insert({
-              server_id: server.id,
-              name: channelData.name,
-              type: channelData.type,
-              position: channelData.position
-            })
-          
-          if (channelError) {
-            console.error('Channel creation error:', channelError)
-          }
-        }
-
-        // Add user as server owner (this should happen automatically via trigger or we'll handle it differently)
-        console.log('Server created successfully, owner_id set to:', user.id)
-
-        console.log('Server creation completed successfully')
-        return server
-      } catch (error) {
-        console.error('Error in createServer:', error)
-        throw error
-      }
+      return { ...server, channels: [channel] }
     },
-    onSuccess: (server) => {
-      toast.success(`Server "${server.name}" created successfully!`)
-      queryClient.invalidateQueries({ queryKey: ['servers', user?.id] })
-      setCurrentServer(server)
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-servers'] })
+      queryClient.invalidateQueries({ queryKey: ['public-servers'] })
+      toast.success('Server created successfully!')
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to create server: ${error.message}`)
     }
   })
 
   // Create channel mutation
   const createChannel = useMutation({
-    mutationFn: async ({ 
-      serverId, 
-      name, 
-      type = 'text' as const, 
-      description 
-    }: { 
-      serverId: string
-      name: string
-      type?: 'text' | 'voice' | 'announcement'
-      description?: string 
-    }) => {
+    mutationFn: async ({ name, serverId, type = 'text' }: { name: string; serverId: string; type?: string }) => {
       const { data: channel, error } = await supabase
         .from('channels')
         .insert({
-          server_id: serverId,
           name,
-          type,
-          description,
-          position: 999 // Will be updated by trigger
+          server_id: serverId,
+          type
         })
         .select()
         .single()
@@ -191,11 +128,12 @@ export function useServers() {
       if (error) throw error
       return channel
     },
-    onSuccess: (channel) => {
-      toast.success(`Channel "#${channel.name}" created successfully!`)
-      queryClient.invalidateQueries({ queryKey: ['servers', user?.id] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-servers'] })
+      queryClient.invalidateQueries({ queryKey: ['public-servers'] })
+      toast.success('Channel created successfully!')
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to create channel: ${error.message}`)
     }
   })
@@ -203,108 +141,40 @@ export function useServers() {
   // Join server mutation
   const joinServer = useMutation({
     mutationFn: async (serverId: string) => {
-      if (!user) throw new Error('User not authenticated')
-
       const { error } = await supabase
         .from('server_members')
         .insert({
           server_id: serverId,
-          user_id: user.id
+          user_id: (await supabase.auth.getUser()).data.user?.id
         })
 
       if (error) throw error
+      return { success: true }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-servers'] })
+      queryClient.invalidateQueries({ queryKey: ['public-servers'] })
       toast.success('Joined server successfully!')
-      queryClient.invalidateQueries({ queryKey: ['servers', user?.id] })
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to join server: ${error.message}`)
     }
   })
 
-  // Join server by invite code mutation
-  const joinServerByInvite = useMutation({
-    mutationFn: async (inviteCode: string) => {
-      if (!user) throw new Error('User not authenticated')
-
-      const { data, error } = await supabase.rpc('join_server_by_invite', {
-        invite_code_param: inviteCode
-      })
-
-      if (error) throw error
-      return data
-    },
-    onSuccess: () => {
-      toast.success('Joined server successfully!')
-      queryClient.invalidateQueries({ queryKey: ['servers', user?.id] })
-    },
-    onError: (error) => {
-      toast.error(`Failed to join server: ${error.message}`)
-    }
-  })
-
-  // Set up real-time subscriptions
-  useEffect(() => {
-    if (!user) return
-
-    const serversSubscription = supabase
-      .channel('servers')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'servers'
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['servers', user.id] })
-      })
-      .subscribe()
-
-    const channelsSubscription = supabase
-      .channel('channels')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'channels'
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['servers', user.id] })
-      })
-      .subscribe()
-
-    const membersSubscription = supabase
-      .channel('server_members')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'server_members'
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['servers', user.id] })
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(serversSubscription)
-      supabase.removeChannel(channelsSubscription)
-      supabase.removeChannel(membersSubscription)
-    }
-  }, [user, queryClient])
-
-  // Manual refresh function for debugging
+  // Refresh servers
   const refreshServers = () => {
-    console.log('Manual refresh triggered')
-    queryClient.invalidateQueries({ queryKey: ['servers', user?.id] })
+    queryClient.invalidateQueries({ queryKey: ['user-servers'] })
+    queryClient.invalidateQueries({ queryKey: ['public-servers'] })
   }
 
   return {
-    servers,
-    serversLoading,
-    currentServer,
-    setCurrentServer,
-    currentChannel,
-    setCurrentChannel,
+    servers: allServers,
+    userServers,
+    publicServers,
+    isLoading: userServersLoading || publicServersLoading,
     createServer,
     createChannel,
     joinServer,
-    joinServerByInvite,
     refreshServers
   }
 }

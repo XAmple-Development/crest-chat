@@ -1,168 +1,99 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { MessageCircle } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '../hooks/useAuth'
+import { toast } from 'sonner'
 
-export function Auth() {
-  const [isLoading, setIsLoading] = useState(false)
+export default function Auth() {
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
   const { signIn, signUp } = useAuth()
-  const navigate = useNavigate()
 
-  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-
-    const formData = new FormData(e.currentTarget)
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-
-    try {
-      const { error } = await signIn(email, password)
-      if (error) {
-        console.error('Sign in error:', error)
-        alert(error.message)
-      } else {
-        navigate('/app')
-      }
-    } catch (error) {
-      console.error('Sign in error:', error)
-    } finally {
-      setIsLoading(false)
+    if (!email || !password) {
+      toast.error('Please fill in all fields')
+      return
     }
-  }
 
-  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    const formData = new FormData(e.currentTarget)
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-
+    setLoading(true)
     try {
-      const { error } = await signUp(email, password)
-      if (error) {
-        console.error('Sign up error:', error)
-        alert(error.message)
-      } else {
-        alert('Account created successfully! Please check your email to verify your account.')
-        navigate('/app')
+      const result = isSignUp 
+        ? await signUp(email, password)
+        : await signIn(email, password)
+
+      if (!result.success) {
+        toast.error(result.error)
+      } else if (isSignUp) {
+        toast.success('Account created! Please check your email to verify your account.')
       }
-    } catch (error) {
-      console.error('Sign up error:', error)
+    } catch (error: any) {
+      toast.error(error.message)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-discord-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2">
-            <MessageCircle className="w-8 h-8 text-white" />
-            <span className="text-2xl font-bold text-white">CrestChat</span>
-          </Link>
-        </div>
+        <div className="bg-discord-sidebar rounded-lg p-8 shadow-xl">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-discord-text mb-2">CrestChat</h1>
+            <p className="text-discord-muted">Your Discord-like chat application</p>
+          </div>
 
-        {/* Auth Card */}
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-white">Welcome back!</CardTitle>
-            <CardDescription className="text-gray-300">
-              We're so excited to see you again!
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-white/10">
-                <TabsTrigger value="signin" className="text-white">Sign In</TabsTrigger>
-                <TabsTrigger value="signup" className="text-white">Sign Up</TabsTrigger>
-              </TabsList>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-discord-text mb-2">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
 
-              <TabsContent value="signin" className="mt-6">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-white">Email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      required
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-white">Password</Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      required
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full gradient-blurple text-white"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Signing in...' : 'Sign In'}
-                  </Button>
-                </form>
-              </TabsContent>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-discord-text mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
+                placeholder="Enter your password"
+                required
+              />
+            </div>
 
-              <TabsContent value="signup" className="mt-6">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-white">Email</Label>
-                    <Input
-                      id="signup-email"
-                      name="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      required
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-white">Password</Label>
-                    <Input
-                      id="signup-password"
-                      name="password"
-                      type="password"
-                      placeholder="Create a password"
-                      required
-                      minLength={6}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full gradient-blurple text-white"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Creating account...' : 'Create Account'}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-discord-primary hover:bg-discord-primary/90 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+            >
+              {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
+            </button>
+          </form>
 
-        {/* Back to home */}
-        <div className="text-center mt-6">
-          <Link to="/" className="text-gray-300 hover:text-white transition-colors">
-            ← Back to home
-          </Link>
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-discord-muted hover:text-discord-text transition-colors duration-200"
+            >
+              {isSignUp 
+                ? 'Already have an account? Sign In' 
+                : "Don't have an account? Sign Up"
+              }
+            </button>
+          </div>
         </div>
       </div>
     </div>

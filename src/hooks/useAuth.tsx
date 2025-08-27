@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/integrations/supabase/client'
 import { User } from '@supabase/supabase-js'
+import { supabase } from '@/integrations/supabase/client'
+import { Profile } from '@/integrations/supabase/types'
 
 interface AuthUser {
   id: string
   email: string
-  username?: string
-  display_name?: string
+  username: string
+  display_name: string
   avatar_url?: string
-  status?: string
+  status: string
   created_at: string
 }
 
@@ -18,22 +19,19 @@ export function useAuth() {
 
   useEffect(() => {
     // Get initial session
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        await loadUserData(session.user)
+        loadUserData(session.user)
       }
       setLoading(false)
-    }
-
-    getInitialSession()
+    })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
           await loadUserData(session.user)
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           setUser(null)
         }
         setLoading(false)
@@ -58,7 +56,7 @@ export function useAuth() {
           id: profile.id,
           email: authUser.email || '',
           username: profile.username,
-          display_name: profile.display_name,
+          display_name: profile.display_name || profile.username,
           avatar_url: profile.avatar_url,
           status: profile.status,
           created_at: profile.created_at
@@ -66,13 +64,11 @@ export function useAuth() {
         return
       }
 
-      // Profile doesn't exist, create one or use auth data
+      // Profile doesn't exist, create one
       console.log('Profile not found, creating one...')
-      
-      // Try to create a profile
       const username = authUser.email?.split('@')[0] || 'user'
       const cleanUsername = username.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase()
-      
+
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
         .insert({
@@ -91,9 +87,7 @@ export function useAuth() {
           flags: 0,
           premium_type: 0,
           premium_since: null,
-          last_seen: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          last_seen: new Date().toISOString()
         })
         .select()
         .single()
@@ -103,7 +97,7 @@ export function useAuth() {
           id: newProfile.id,
           email: authUser.email || '',
           username: newProfile.username,
-          display_name: newProfile.display_name,
+          display_name: newProfile.display_name || newProfile.username,
           avatar_url: newProfile.avatar_url,
           status: newProfile.status,
           created_at: newProfile.created_at
@@ -136,38 +130,49 @@ export function useAuth() {
     }
   }
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-    return { error }
+  const signUp = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+      if (error) throw error
+      return { success: true, data }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
   }
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password
-    })
-    return { error }
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (error) throw error
+      return { success: true, data }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
-  }
-
-  const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
-    return { error }
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      setUser(null)
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
   }
 
   return {
     user,
     loading,
-    signIn,
     signUp,
+    signIn,
     signOut,
-    resetPassword
+    isAuthenticated: !!user
   }
 }

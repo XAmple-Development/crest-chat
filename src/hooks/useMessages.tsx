@@ -1,14 +1,9 @@
-import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
-import { useAuth } from './useAuth'
-
 export function useMessages(channelId: string | null) {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
-  const [isTyping, setIsTyping] = useState(false)
 
   // Fetch messages for a channel
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
@@ -46,13 +41,13 @@ export function useMessages(channelId: string | null) {
   // Send message mutation
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {
-      if (!user || !channelId) throw new Error('User not authenticated or no channel selected')
+      if (!channelId) throw new Error('No channel selected')
 
       const { data: message, error } = await supabase
         .from('messages')
         .insert({
           channel_id: channelId,
-          author_id: user.id,
+          author_id: (await supabase.auth.getUser()).data.user?.id,
           content,
           type: 'default',
           is_pinned: false,
@@ -84,7 +79,7 @@ export function useMessages(channelId: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to send message: ${error.message}`)
     }
   })
@@ -100,7 +95,6 @@ export function useMessages(channelId: string | null) {
           updated_at: new Date().toISOString()
         })
         .eq('id', messageId)
-        .eq('author_id', user?.id) // Only allow editing own messages
         .select()
         .single()
 
@@ -109,8 +103,9 @@ export function useMessages(channelId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
+      toast.success('Message edited successfully!')
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to edit message: ${error.message}`)
     }
   })
@@ -122,53 +117,25 @@ export function useMessages(channelId: string | null) {
         .from('messages')
         .update({
           is_deleted: true,
-          deleted_at: new Date().toISOString()
+          updated_at: new Date().toISOString()
         })
         .eq('id', messageId)
-        .eq('author_id', user?.id) // Only allow deleting own messages
 
       if (error) throw error
+      return { success: true }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
+      toast.success('Message deleted successfully!')
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to delete message: ${error.message}`)
     }
   })
 
-  // Set up real-time subscription for messages
-  useEffect(() => {
-    if (!channelId) return
-
-    const messagesSubscription = supabase
-      .channel(`messages:${channelId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'messages',
-        filter: `channel_id=eq.${channelId}`
-      }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
-        } else if (payload.eventType === 'UPDATE') {
-          queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
-        } else if (payload.eventType === 'DELETE') {
-          queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
-        }
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(messagesSubscription)
-    }
-  }, [channelId, queryClient])
-
   return {
     messages,
     messagesLoading,
-    isTyping,
-    setIsTyping,
     sendMessage,
     editMessage,
     deleteMessage
