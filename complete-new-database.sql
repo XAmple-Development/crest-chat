@@ -24,11 +24,7 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
-DO $$ BEGIN
-    CREATE TYPE role_permission AS ENUM ('member', 'moderator', 'admin', 'owner');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+-- Role permission enum removed - using VARCHAR instead
 
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS profiles (
@@ -72,7 +68,7 @@ CREATE TABLE IF NOT EXISTS server_members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    role role_permission DEFAULT 'member',
+    role VARCHAR(20) DEFAULT 'member',
     joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(server_id, user_id)
 );

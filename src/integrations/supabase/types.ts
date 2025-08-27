@@ -40,7 +40,7 @@ export interface ServerMember {
   id: string
   server_id: string
   user_id: string
-  role: 'member' | 'moderator' | 'admin' | 'owner'
+  role: string
   joined_at: string
   user?: Profile
 }
@@ -126,7 +126,6 @@ export interface Database {
       user_status: 'online' | 'idle' | 'dnd' | 'invisible' | 'offline'
       channel_type: 'text' | 'voice' | 'announcement'
       message_type: 'default' | 'system' | 'user_join' | 'user_leave'
-      role_permission: 'member' | 'moderator' | 'admin' | 'owner'
     }
   }
 }
