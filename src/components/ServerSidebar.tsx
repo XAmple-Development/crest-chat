@@ -24,32 +24,35 @@ export function ServerSidebar({
   setCurrentChannel 
 }: ServerSidebarProps) {
   const { user, signOut } = useAuth()
-  const { servers, createServer, createChannel } = useServers()
+  const { servers, createServer, createChannel, joinServer, refreshServers } = useServers()
   const [isCreateServerOpen, setIsCreateServerOpen] = useState(false)
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
   const [serverName, setServerName] = useState('')
   const [serverDescription, setServerDescription] = useState('')
+  const [serverPrivacy, setServerPrivacy] = useState<'public' | 'private' | 'invite_only'>('public')
   const [channelName, setChannelName] = useState('')
   const [channelType, setChannelType] = useState<'text' | 'voice' | 'announcement'>('text')
 
-  const handleCreateServer = async (e: React.FormEvent) => {
+  const handleCreateServer = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!serverName.trim()) return
 
     try {
       await createServer.mutateAsync({
         name: serverName.trim(),
-        description: serverDescription.trim() || undefined
+        description: serverDescription.trim() || undefined,
+        privacyLevel: serverPrivacy
       })
       setServerName('')
       setServerDescription('')
+      setServerPrivacy('public')
       setIsCreateServerOpen(false)
     } catch (error) {
       console.error('Failed to create server:', error)
     }
   }
 
-  const handleCreateChannel = async (e: React.FormEvent) => {
+  const handleCreateChannel = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!channelName.trim() || !currentServer) return
 
@@ -84,7 +87,20 @@ export function ServerSidebar({
     <div className="w-64 bg-card border-r border-border flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-border">
-        <h2 className="text-lg font-semibold">Servers</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Servers</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={refreshServers}
+            className="h-6 w-6 p-0"
+            title="Refresh servers"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </Button>
+        </div>
       </div>
 
       {/* Server List */}
@@ -104,29 +120,49 @@ export function ServerSidebar({
           Home
         </Button>
 
-        {/* User's Servers */}
+        {/* User's Servers and Public Servers */}
         {servers.map((server) => (
           <div key={server.id} className="space-y-1">
-            <Button
-              variant="ghost"
-              className={`w-full justify-start h-12 ${
-                currentServer?.id === server.id ? 'bg-primary text-primary-foreground' : ''
-              }`}
-              onClick={() => {
-                setCurrentServer(server)
-                setCurrentChannel(server.channels[0] || null)
-              }}
-            >
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2">
-                {server.name.charAt(0).toUpperCase()}
-              </div>
-              {server.name}
-            </Button>
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                className={`flex-1 justify-start h-12 ${
+                  currentServer?.id === server.id ? 'bg-primary text-primary-foreground' : ''
+                }`}
+                onClick={() => {
+                  setCurrentServer(server)
+                  setCurrentChannel(server.channels[0] || null)
+                }}
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2">
+                  {server.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 text-left">
+                  {server.name}
+                  {!server.isMember && (
+                    <span className="text-xs text-muted-foreground ml-2">(Public)</span>
+                  )}
+                </div>
+              </Button>
+              
+              {/* Join button for public servers user isn't a member of */}
+              {!server.isMember && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-2 h-8 px-2"
+                  onClick={() => joinServer.mutate(server.id)}
+                  disabled={joinServer.isPending}
+                >
+                  Join
+                </Button>
+              )}
+            </div>
 
             {/* Channels for current server */}
             {currentServer?.id === server.id && (
               <div className="ml-4 space-y-1">
-                {server.channels.map((channel) => (
+                {server.channels.map((channel: any) => (
                   <Button
                     key={channel.id}
                     variant="ghost"
@@ -141,16 +177,18 @@ export function ServerSidebar({
                   </Button>
                 ))}
                 
-                {/* Create Channel Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start h-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => setIsCreateChannelOpen(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Channel
-                </Button>
+                {/* Create Channel Button (only for members) */}
+                {server.isMember && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => setIsCreateChannelOpen(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Channel
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -214,6 +252,19 @@ export function ServerSidebar({
                 placeholder="Enter server description"
                 rows={3}
               />
+            </div>
+            <div>
+              <Label htmlFor="server-privacy">Privacy Level</Label>
+              <Select value={serverPrivacy} onValueChange={(value: any) => setServerPrivacy(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Public - Anyone can join</SelectItem>
+                  <SelectItem value="invite_only">Invite Only - Requires invite link</SelectItem>
+                  <SelectItem value="private">Private - Only owner can add members</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-end space-x-2">
               <Button

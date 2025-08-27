@@ -11,13 +11,16 @@ export function useServers() {
   const [currentServer, setCurrentServer] = useState<Server | null>(null)
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null)
 
-  // Fetch user's servers
+  // Fetch user's servers and public servers
   const { data: servers = [], isLoading: serversLoading } = useQuery({
     queryKey: ['servers', user?.id],
     queryFn: async () => {
       if (!user) return []
       
-      const { data, error } = await supabase
+      console.log('Fetching servers for user:', user.id)
+      
+      // Fetch servers the user is a member of
+      const { data: memberServers, error: memberError } = await supabase
         .from('server_members')
         .select(`
           server_id,
@@ -28,69 +31,131 @@ export function useServers() {
         `)
         .eq('user_id', user.id)
 
-      if (error) {
-        console.error('Error fetching servers:', error)
-        return []
+      if (memberError) {
+        console.error('Error fetching member servers:', memberError)
       }
 
-      if (!data) return []
+      // Fetch public servers the user is not a member of
+      const { data: publicServers, error: publicError } = await supabase
+        .from('servers')
+        .select(`
+          *,
+          channels (*)
+        `)
+        .eq('privacy_level', 'public')
+        .not('id', 'in', `(${memberServers?.map(s => s.server_id).join(',') || '00000000-0000-0000-0000-000000000000'})`)
 
-      return data.map(item => {
+      if (publicError) {
+        console.error('Error fetching public servers:', publicError)
+      }
+
+      // Combine member servers and public servers
+      const memberServerList = memberServers?.map(item => {
         const server = item.servers as unknown as Server
         const channels = (item.servers as any).channels as Channel[] || []
         return {
           ...server,
-          channels
+          channels,
+          isMember: true
         }
-      })
+      }) || []
+
+      const publicServerList = publicServers?.map(server => {
+        const channels = (server as any).channels as Channel[] || []
+        return {
+          ...server,
+          channels,
+          isMember: false
+        }
+      }) || []
+
+      const allServers = [...memberServerList, ...publicServerList]
+      
+      console.log('All servers (members + public):', allServers)
+      return allServers
     },
     enabled: !!user
   })
 
   // Create server mutation
   const createServer = useMutation({
-    mutationFn: async ({ name, description }: { name: string; description?: string }) => {
+    mutationFn: async ({ 
+      name, 
+      description, 
+      privacyLevel = 'public' 
+    }: { 
+      name: string; 
+      description?: string; 
+      privacyLevel?: 'public' | 'private' | 'invite_only' 
+    }) => {
       if (!user) throw new Error('User not authenticated')
 
-      // Create server
-      const { data: server, error: serverError } = await supabase
-        .from('servers')
-        .insert({
-          name,
-          description,
-          is_public: false
-        })
-        .select()
-        .single()
+      try {
+        // Generate invite code for the server
+        const { data: inviteCodeData } = await supabase.rpc('generate_invite_code')
+        const inviteCode = inviteCodeData || Math.random().toString(36).substring(2, 10).toUpperCase()
 
-      if (serverError) throw serverError
+        // Create server
+        const { data: server, error: serverError } = await supabase
+          .from('servers')
+          .insert({
+            name,
+            description,
+            owner_id: user.id,
+            privacy_level: privacyLevel,
+            invite_code: inviteCode,
+            is_public: privacyLevel === 'public'
+          })
+          .select()
+          .single()
 
-      // Create default channels
-      const defaultChannels = [
-        { name: 'general', type: 'text' as const, position: 0 },
-        { name: 'announcements', type: 'announcement' as const, position: 1 }
-      ]
+        if (serverError) {
+          console.error('Server creation error:', serverError)
+          throw serverError
+        }
 
-      for (const channelData of defaultChannels) {
-        await supabase
-          .from('channels')
+        console.log('Server created:', server)
+
+        // Create default channels
+        const defaultChannels = [
+          { name: 'general', type: 'text' as const, position: 0 },
+          { name: 'announcements', type: 'announcement' as const, position: 1 }
+        ]
+
+        for (const channelData of defaultChannels) {
+          const { error: channelError } = await supabase
+            .from('channels')
+            .insert({
+              server_id: server.id,
+              name: channelData.name,
+              type: channelData.type,
+              position: channelData.position
+            })
+          
+          if (channelError) {
+            console.error('Channel creation error:', channelError)
+          }
+        }
+
+        // Add user as server owner
+        const { error: memberError } = await supabase
+          .from('server_members')
           .insert({
             server_id: server.id,
-            name: channelData.name,
-            type: channelData.type,
-            position: channelData.position
+            user_id: user.id
           })
+
+        if (memberError) {
+          console.error('Member creation error:', memberError)
+          // Don't throw here, just log the error
+        }
+
+        console.log('Server creation completed successfully')
+        return server
+      } catch (error) {
+        console.error('Error in createServer:', error)
+        throw error
       }
-
-      // Add user as server owner
-      await supabase
-        .from('server_members')
-        .insert({
-          server_id: server.id,
-          user_id: user.id
-        })
-
-      return server
     },
     onSuccess: (server) => {
       toast.success(`Server "${server.name}" created successfully!`)
@@ -162,6 +227,27 @@ export function useServers() {
     }
   })
 
+  // Join server by invite code mutation
+  const joinServerByInvite = useMutation({
+    mutationFn: async (inviteCode: string) => {
+      if (!user) throw new Error('User not authenticated')
+
+      const { data, error } = await supabase.rpc('join_server_by_invite', {
+        invite_code_param: inviteCode
+      })
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      toast.success('Joined server successfully!')
+      queryClient.invalidateQueries({ queryKey: ['servers', user?.id] })
+    },
+    onError: (error) => {
+      toast.error(`Failed to join server: ${error.message}`)
+    }
+  })
+
   // Set up real-time subscriptions
   useEffect(() => {
     if (!user) return
@@ -206,6 +292,12 @@ export function useServers() {
     }
   }, [user, queryClient])
 
+  // Manual refresh function for debugging
+  const refreshServers = () => {
+    console.log('Manual refresh triggered')
+    queryClient.invalidateQueries({ queryKey: ['servers', user?.id] })
+  }
+
   return {
     servers,
     serversLoading,
@@ -215,6 +307,8 @@ export function useServers() {
     setCurrentChannel,
     createServer,
     createChannel,
-    joinServer
+    joinServer,
+    joinServerByInvite,
+    refreshServers
   }
 }
