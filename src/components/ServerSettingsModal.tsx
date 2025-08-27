@@ -82,6 +82,8 @@ export function ServerSettingsModal({
     if (!server) return
     setLoadingMembers(true)
     try {
+      console.log('Loading members for server:', server.id)
+      
       const { data, error } = await supabase
         .from('server_members')
         .select(`
@@ -96,7 +98,12 @@ export function ServerSettingsModal({
         `)
         .eq('server_id', server.id)
       
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error loading members:', error)
+        throw error
+      }
+      
+      console.log('Members loaded successfully:', data)
       setMembers(data || [])
     } catch (error) {
       console.error('Error loading members:', error)
