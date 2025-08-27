@@ -17,8 +17,11 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    console.log('Setting up auth listener...')
+    
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email)
       if (session?.user) {
         loadUserData(session.user)
       }
@@ -28,6 +31,7 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', { event, userId: session?.user?.id, email: session?.user?.email })
         if (event === 'SIGNED_IN' && session?.user) {
           await loadUserData(session.user)
         } else if (event === 'SIGNED_OUT') {
@@ -41,6 +45,7 @@ export function useAuth() {
   }, [])
 
   const loadUserData = async (authUser: User) => {
+    console.log('Loading user data for:', authUser.email)
     try {
       // First try to get from profiles table
       const { data: profile, error: profileError } = await supabase
@@ -49,8 +54,11 @@ export function useAuth() {
         .eq('id', authUser.id)
         .single()
 
+      console.log('Profile query result:', { profile, error: profileError })
+
       if (profile && !profileError) {
         // Profile exists, use it
+        console.log('Using existing profile:', profile.username)
         setUser({
           id: profile.id,
           email: authUser.email || '',
@@ -73,20 +81,10 @@ export function useAuth() {
         .insert({
           id: authUser.id,
           username: cleanUsername,
-          discriminator: Math.floor(Math.random() * 9999).toString().padStart(4, '0'),
+          email: authUser.email || '',
           display_name: authUser.user_metadata?.full_name || cleanUsername,
           avatar_url: authUser.user_metadata?.avatar_url || null,
-          status: 'online',
-          theme: 'dark',
-          locale: 'en-US',
-          timezone: 'UTC',
-          is_verified: false,
-          is_bot: false,
-          is_system: false,
-          flags: 0,
-          premium_type: 0,
-          premium_since: null,
-          last_seen: new Date().toISOString()
+          status: 'online'
         })
         .select()
         .single()
