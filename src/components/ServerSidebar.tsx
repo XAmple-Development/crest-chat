@@ -38,19 +38,28 @@ export default function ServerSidebar({
 
     setLoading(true)
     try {
-      const { data: server, error } = await supabase
+      // Generate invite code
+      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+      
+      // Create server first
+      const { data: server, error: serverError } = await supabase
         .from('servers')
         .insert({
           name: serverName.trim(),
           description: serverDescription.trim() || null,
           owner_id: user.id,
           privacy_level: serverPrivacy,
-          invite_code: Math.random().toString(36).substring(2, 8).toUpperCase()
+          invite_code: inviteCode
         })
         .select()
         .single()
 
-      if (error) throw error
+      if (serverError) {
+        console.error('Server creation error:', serverError)
+        throw serverError
+      }
+
+      console.log('Server created:', server)
 
       // Create default channel
       const { error: channelError } = await supabase
@@ -61,18 +70,27 @@ export default function ServerSidebar({
           type: 'text'
         })
 
-      if (channelError) throw channelError
+      if (channelError) {
+        console.error('Channel creation error:', channelError)
+        throw channelError
+      }
+
+      console.log('Default channel created')
 
       // Add owner as member
       const { error: memberError } = await supabase
         .from('server_members')
         .insert({
           server_id: server.id,
-          user_id: user.id,
-          role: 'owner'
+          user_id: user.id
         })
 
-      if (memberError) throw memberError
+      if (memberError) {
+        console.error('Member creation error:', memberError)
+        throw memberError
+      }
+
+      console.log('Owner added as member')
 
       toast.success('Server created successfully!')
       setShowCreateServer(false)
@@ -83,6 +101,7 @@ export default function ServerSidebar({
       // Refresh the page to show new server
       window.location.reload()
     } catch (error: any) {
+      console.error('Full error:', error)
       toast.error(`Failed to create server: ${error.message}`)
     } finally {
       setLoading(false)
