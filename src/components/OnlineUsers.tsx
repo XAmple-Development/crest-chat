@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../integrations/supabase/client'
 import { Server } from '../integrations/supabase/types'
+import { useDMs } from '@/hooks/useDMs'
 
 interface OnlineUsersProps {
   server: Server | null
@@ -17,6 +18,7 @@ interface OnlineUser {
 export default function OnlineUsers({ server }: OnlineUsersProps) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
   const [loading, setLoading] = useState(false)
+  const { startDM } = useDMs()
 
   useEffect(() => {
     if (server) {
@@ -97,7 +99,20 @@ export default function OnlineUsers({ server }: OnlineUsersProps) {
       ) : (
         <div className="space-y-2">
           {onlineUsers.map((user) => (
-            <div key={user.id} className="flex items-center space-x-3 p-2 hover:bg-discord-channel/50 rounded-md transition-colors">
+            <button
+              key={user.id}
+              onClick={async () => {
+                try {
+                  const threadId = await startDM.mutateAsync(user.id)
+                  if (threadId) {
+                    window.location.hash = `#dm:${threadId}`
+                  }
+                } catch (e) {
+                  console.error(e)
+                }
+              }}
+              className="w-full text-left flex items-center space-x-3 p-2 hover:bg-discord-channel/50 rounded-md transition-colors"
+            >
               {/* User Avatar with Status */}
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-discord-primary flex items-center justify-center text-white text-sm font-medium">
@@ -115,7 +130,7 @@ export default function OnlineUsers({ server }: OnlineUsersProps) {
                   {getStatusText(user.status)}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
           
           {onlineUsers.length === 0 && (

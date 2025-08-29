@@ -66,6 +66,34 @@ export interface Message {
   author?: Profile
 }
 
+// Direct Messages
+export interface DMThread {
+  id: string
+  is_group: boolean
+  created_at: string
+  updated_at: string
+  participants?: DMParticipant[]
+}
+
+export interface DMParticipant {
+  thread_id: string
+  user_id: string
+  joined_at: string
+  user?: Profile
+}
+
+export interface DMMessage {
+  id: string
+  thread_id: string
+  author_id: string
+  content: string
+  is_edited: boolean
+  is_deleted: boolean
+  created_at: string
+  updated_at: string
+  author?: Profile
+}
+
 export interface UserSettings {
   id: string
   user_id: string
@@ -107,6 +135,21 @@ export interface Database {
         Insert: Omit<Message, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Message, 'id' | 'created_at' | 'updated_at'>>
       }
+      dm_threads: {
+        Row: DMThread
+        Insert: Omit<DMThread, 'id' | 'created_at' | 'updated_at' | 'participants'>
+        Update: Partial<Omit<DMThread, 'id' | 'created_at' | 'updated_at' | 'participants'>>
+      }
+      dm_participants: {
+        Row: DMParticipant
+        Insert: DMParticipant
+        Update: Partial<DMParticipant>
+      }
+      dm_messages: {
+        Row: DMMessage
+        Insert: Omit<DMMessage, 'id' | 'created_at' | 'updated_at' | 'author'>
+        Update: Partial<Omit<DMMessage, 'id' | 'created_at' | 'updated_at' | 'author'>>
+      }
       user_settings: {
         Row: UserSettings
         Insert: Omit<UserSettings, 'id' | 'created_at' | 'updated_at'>
@@ -120,6 +163,10 @@ export interface Database {
       join_server_by_invite: {
         Args: { invite_code_param: string }
         Returns: boolean
+      }
+      create_or_get_dm_thread: {
+        Args: { target_user_id: string }
+        Returns: string | null
       }
     }
     Enums: {

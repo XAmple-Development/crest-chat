@@ -111,9 +111,9 @@ export function useServers() {
     }
   })
 
-  // Create channel mutation
+  // Create channel mutation (supports 'text' | 'announcement')
   const createChannel = useMutation({
-    mutationFn: async ({ name, serverId, type = 'text' }: { name: string; serverId: string; type?: string }) => {
+    mutationFn: async ({ name, serverId, type = 'text' }: { name: string; serverId: string; type?: 'text' | 'announcement' | 'voice' }) => {
       const { data: channel, error } = await supabase
         .from('channels')
         .insert({

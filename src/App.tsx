@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import Auth from './pages/Auth'
 import LoadingSpinner from './components/LoadingSpinner'
-import Messenger from './pages/Messenger'
+import ChatApp from './pages/ChatApp'
 
 function App() {
   const { user, loading } = useAuth()
@@ -16,15 +16,15 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={user ? <Messenger /> : <Auth />}
+          element={user ? <ChatApp /> : <Auth />}
         />
         <Route
           path="/auth"
-          element={user ? <Messenger /> : <Auth />}
+          element={user ? <ChatApp /> : <Auth />}
         />
         <Route
           path="*"
-          element={user ? <Messenger /> : <Auth />}
+          element={user ? <ChatApp /> : <Auth />}
         />
       </Routes>
     </div>

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Server, Channel } from '../integrations/supabase/types'
 import { supabase } from '../integrations/supabase/client'
 import { toast } from 'sonner'
+import { useDMs } from '@/hooks/useDMs'
 
 interface ServerSidebarProps {
   servers: Server[]
@@ -10,6 +11,7 @@ interface ServerSidebarProps {
   onServerSelect: (server: Server) => void
   onChannelSelect: (channel: Channel) => void
   user: any
+  onDMSelect?: (threadId: string) => void
 }
 
 export default function ServerSidebar({
@@ -18,7 +20,8 @@ export default function ServerSidebar({
   currentChannel,
   onServerSelect,
   onChannelSelect,
-  user
+  user,
+  onDMSelect
 }: ServerSidebarProps) {
   const [showCreateServer, setShowCreateServer] = useState(false)
   const [showCreateChannel, setShowCreateChannel] = useState(false)
@@ -29,6 +32,15 @@ export default function ServerSidebar({
   const [channelName, setChannelName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [loading, setLoading] = useState(false)
+  const [channelType, setChannelType] = useState<'text' | 'announcement' | 'voice'>('text')
+
+  const { threads } = useDMs()
+  const directContacts = useMemo(() => {
+    return (threads || []).map((t: any) => {
+      const other = (t.participants || []).map((p: any) => p.user).find((u: any) => u?.id !== user.id)
+      return { id: t.id, user: other }
+    }).filter((d: any) => !!d.user)
+  }, [threads, user?.id])
 
   const handleCreateServer = async () => {
     if (!serverName.trim()) {
@@ -121,7 +133,7 @@ export default function ServerSidebar({
         .insert({
           name: channelName.trim(),
           server_id: currentServer.id,
-          type: 'text'
+          type: channelType
         })
 
       if (error) throw error
@@ -129,6 +141,7 @@ export default function ServerSidebar({
       toast.success('Channel created successfully!')
       setShowCreateChannel(false)
       setChannelName('')
+      setChannelType('text')
       
       // Refresh the page to show new channel
       window.location.reload()
@@ -316,6 +329,34 @@ export default function ServerSidebar({
         </div>
       </div>
 
+      {/* Direct Messages */}
+      <div className="p-4 border-t border-gray-700">
+        <h3 className="text-xs font-semibold text-discord-muted uppercase tracking-wide mb-2">Direct Messages</h3>
+        <div className="space-y-1 max-h-48 overflow-y-auto">
+          {directContacts.map((d: any) => (
+            <button
+              key={d.id}
+              onClick={() => {
+                if (onDMSelect) {
+                  onDMSelect(d.id)
+                } else {
+                  window.location.hash = `#dm:${d.id}`
+                }
+              }}
+              className="w-full p-2 rounded hover:bg-discord-channel/60 text-left text-sm text-discord-text/90 flex items-center gap-2"
+            >
+              <div className="w-6 h-6 rounded-full bg-discord-primary text-white flex items-center justify-center text-xs">
+                {d.user?.username?.[0]?.toUpperCase?.() || 'U'}
+              </div>
+              <span className="truncate">{d.user?.display_name || d.user?.username}</span>
+            </button>
+          ))}
+          {directContacts.length === 0 && (
+            <div className="text-xs text-discord-muted">No DMs yet</div>
+          )}
+        </div>
+      </div>
+
       {/* Create Server Modal */}
       {showCreateServer && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -402,6 +443,21 @@ export default function ServerSidebar({
                   className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
                   placeholder="Enter channel name"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-discord-text mb-2">
+                  Channel Type
+                </label>
+                <select
+                  value={channelType}
+                  onChange={(e) => setChannelType(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-discord-channel border border-gray-600 rounded-md text-discord-text focus:outline-none focus:ring-2 focus:ring-discord-primary focus:border-transparent"
+                >
+                  <option value="text">Text</option>
+                  <option value="announcement">Announcement</option>
+                  <option value="voice">Voice</option>
+                </select>
               </div>
 
               <div className="flex space-x-3 pt-4">
